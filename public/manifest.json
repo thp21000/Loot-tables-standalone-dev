@@ -1,15 +1,15 @@
 {
-  "name": "Loot Tables Dev",
-  "version": "0.1.46",
+  "name": "Loot Tables",
+  "version": "0.1.47",
   "manifest_version": 1,
   "author": "GM Tools & Resources",
-  "icon":"https://thp21000.github.io/loot-tables-dev/icon.svg",
+  "icon":"https://thp21000.github.io/loot-tables-for-OBR/icon.svg",
   "homepage_url": "https://github.com/thp21000/loot-tables-dev",
-  "description": "Version dev interne",
+  "description": "Create, modify, import, export, and launch loot tables, PF2e/DnD 5e",
   "action": {
-    "title": "Loot Tables Dev",
-    "icon": "https://thp21000.github.io/loot-tables-dev/icon.svg",
-    "popover": "https://thp21000.github.io/loot-tables-dev/",
+    "title": "Loot Tables",
+    "icon": "https://thp21000.github.io/loot-tables-for-OBR/icon.svg",
+    "popover": "https://thp21000.github.io/loot-tables-for-OBR/",
     "width": 1150,
     "height": 950
   }

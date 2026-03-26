@@ -43,7 +43,7 @@ Une extension Owlbear Rodeo pour créer, modifier, importer, exporter et lancer 
 
 Ajouter cette URL comme extension :
 
-`https://loot-tables-af787d.gitlab.io/manifest.json`
+`https://thp21000.github.io/loot-tables-for-OBR/manifest.json`
 
 ### Sauvegarde recommandée
 
@@ -246,7 +246,7 @@ An Owlbear Rodeo extension to create, edit, import, export, and roll loot tables
 
 Add this URL as an extension:
 
-`https://loot-tables-af787d.gitlab.io/manifest.json`
+`https://thp21000.github.io/loot-tables-for-OBR/manifest.json`
 
 ### Recommended backup
 
