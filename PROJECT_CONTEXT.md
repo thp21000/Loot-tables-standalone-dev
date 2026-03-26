@@ -50,8 +50,10 @@
   - Footer secondaire restructuré sur deux lignes pour mieux tenir dans le popover
   - Boutons de lancement rapide / lancer déplacés dans la ligne d’actions principale des tables
   - Support multi-systèmes avec séparation des données PF2E / DND5E
-  - Nouveau sélecteur de système dans l’interface principale
+  - Fenêtre Paramètres (bouton engrenage) pour centraliser les préférences d’affichage
+  - Sélecteur de système déplacé dans la fenêtre Paramètres
   - Sélecteur de langue FR/EN avec provider i18n global
+  - Boutons de langue avec vraies icônes de drapeau (assets SVG)
   - Mapping des termes de jeu (catégories/raretés/types) selon la langue affichée
   - Type d’objet disponible sur les items (notamment utile pour DND5E)
   - Modal unique d’import/export (JSON/CSV) pour centraliser les transferts de fichiers
@@ -60,6 +62,8 @@
   - Ajout de la devise `pe` (pièce d’électrum)
   - Roll avancé avec bornes min/max (niveau, quantité, valeur en cuivre) et modes de probabilité étendus
   - Bornes de roll automatiquement dérivées de la table + saisie manuelle inline des min/max
+  - En mode édition de table : barre d’actions flottante (Enregistrer/Annuler) visible pendant le scroll
+  - Bouton “remonter en haut” dans la même zone flottante de l’éditeur
 
 - Ce qui est en cours :
   - Relecture UX des traductions FR/EN et homogénéisation terminologique
@@ -86,6 +90,7 @@
   - Gère tables, imports/exports unifiés, tirages, validation, rôle MJ/joueur, footer secondaire, état Owlbear
   - Gère le système courant (PF2E / DND5E) et charge les données associées
   - Gère la langue courante (FR/EN) et l’intégration des textes localisés
+  - Expose une modal Paramètres (engrenage en haut à droite) pour système/langue
   - Mesure la largeur réelle du contenu principal pour redimensionner le popover Owlbear
 - `src/owlbear.ts`
   - Couche utilitaire Owlbear SDK
@@ -107,6 +112,7 @@
   - Lignes d’objets validables individuellement
   - Import CSV dans table
   - Collage multiple Excel
+  - Barre d’actions flottante (save/cancel) et bouton de remontée rapide en haut
 - `src/components/RollDialog.tsx`
   - Paramétrage avancé d’un tirage (bornes min/max niveau, quantité, valeur en cuivre)
   - Sliders + saisie manuelle synchronisée des bornes
@@ -133,6 +139,8 @@
   - Dictionnaires de traductions de l’interface
 - `src/i18n/gameTerms.ts`
   - Mapping localisé des termes de jeu selon système/langue
+- `src/assets/flag-fr.svg` / `src/assets/flag-gb.svg`
+  - Icônes de drapeau utilisées dans la modal Paramètres
 
 ## Bug(s) ou problème(s) connu(s)
 - La base technique largeur / scroll / fond du popover principal a été largement stabilisée, mais un dernier polish visuel reste nécessaire selon le rendu réel dans Owlbear.
@@ -160,6 +168,8 @@
 - [x] Support multi-systèmes PF2E / DND5E
 - [x] Stockage local séparé par système
 - [x] Internationalisation FR/EN (sélecteur de langue + provider i18n)
+- [x] Fenêtre Paramètres (engrenage) pour regrouper système + langue
+- [x] Boutons de langue avec drapeaux SVG (FR/EN)
 - [x] Mapping localisé des termes de jeu (catégories/raretés/types)
 - [x] Champs item étendus (type) pour couvrir DND5E
 - [x] Import CSV en nouvelle table
@@ -167,6 +177,8 @@
 - [x] Choix ajouter/remplacer lors d’un import CSV dans une table
 - [x] Détection de doublons simples à l’import
 - [x] Collage multiple depuis Excel
+- [x] Barre flottante d’actions en édition de table (Enregistrer / Annuler)
+- [x] Bouton de remontée rapide en haut de page dans l’éditeur
 - [x] Correction d’encodage UTF-8 CSV
 - [x] Modal unique import/export (JSON/CSV)
 - [x] Mémorisation locale de l’UI
@@ -234,6 +246,9 @@ Depuis la dernière mise à jour, le périmètre fonctionnel a encore évolué :
 - terminologie de jeu contextualisée selon système/langue (PF2E vs DND5E)
 - roll enrichi avec bornes min/max (niveau, quantité, valeur cuivre), modes de probabilité supplémentaires et bornes automatiques dérivées de la table
 - champs manuels min/max ajoutés en complément des sliders pour un réglage précis
+- sélecteurs système/langue déplacés dans une modal Paramètres (engrenage), avec boutons visuels
+- drapeaux de langue passés sur des assets SVG explicites (plus robustes que le rendu emoji selon plateforme)
+- mode édition de table amélioré avec actions flottantes persistantes + bouton de remontée rapide
 
 Le sujet encore ouvert n’est plus une refonte du comportement global, mais un polish visuel ciblé du popover principal dans Owlbear :
 - vérifier que la largeur dynamique reste agréable selon les cas réels
@@ -375,6 +390,28 @@ Le sujet encore ouvert n’est plus une refonte du comportement global, mais un 
 - problèmes restants :
   - Finaliser la relecture terminologique FR/EN sur quelques libellés métier
   - Confirmer en usage Owlbear réel le confort du roll avancé sur petits popovers
+
+### Session du 2026-03-26
+- sujets traités :
+  - Déplacement des sélecteurs système/langue vers une modal Paramètres accessible via un bouton engrenage
+  - Remplacement des drapeaux emoji par de vraies icônes de drapeau SVG dans les boutons de langue
+  - Ajout d’une barre d’actions flottante en édition de table (Enregistrer / Annuler)
+  - Ajout d’un bouton de remontée rapide en haut de page dans l’éditeur
+- fichiers modifiés :
+  - `PROJECT_CONTEXT.md`
+  - `src/App.tsx`
+  - `src/components/TableEditor.tsx`
+  - `src/i18n/locales/fr.ts`
+  - `src/i18n/locales/en.ts`
+  - `src/assets/flag-fr.svg`
+  - `src/assets/flag-gb.svg`
+- décisions prises :
+  - Conserver les préférences de système/langue dans une modal dédiée pour alléger la barre d’actions principale
+  - Utiliser des drapeaux SVG pour garantir un rendu cohérent des icônes de langue selon OS/navigateurs
+  - Garder les actions critiques d’édition toujours visibles pour éviter les validations ratées en bas de page
+- problèmes restants :
+  - Vérifier en conditions Owlbear réelles que la barre flottante n’empiète pas sur certaines zones interactives
+  - Ajuster au besoin l’espacement mobile/popover très étroit si overlap sur petits écrans
 
 ## Règles à respecter
 - Toujours donner le fichier complet patcher.

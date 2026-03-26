@@ -12,6 +12,7 @@ import {
 } from "../owlbear";
 import { buttons, colors, layout, radius, typography } from "../styles/ui";
 import { useI18n } from "../i18n";
+import { tCategory, tRarity } from "../i18n/gameTerms";
 
 function getRarityColor(rarity: string): string {
   if (rarity === "Courant") return "#9ca3af";
@@ -56,7 +57,7 @@ function ItemName({
 }
 
 export default function SharedGainPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [playerRole, setPlayerRole] = useState<OwlbearPlayerRole>("UNKNOWN");
   const [roomState, setRoomState] = useState<OwlbearRoomState>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -240,15 +241,17 @@ export default function SharedGainPage() {
                         color: colors.textSoft,
                       }}
                     >
-                      <span>Niveau {item.level}</span>
-                      <span>{item.category}</span>
+                      <span>
+                        {t("column.level")} {item.level}
+                      </span>
+                      <span>{tCategory(item.category, language)}</span>
                       <span
                         style={{
                           color: getRarityColor(item.rarity),
                           fontWeight: 700,
                         }}
                       >
-                        {item.rarity}
+                        {tRarity(item.rarity, language)}
                       </span>
                     </div>
                   </div>

@@ -193,12 +193,15 @@ export async function openValidatedRollModal(
       viewportMax
     );
 
-    await OBR.modal.open({
-      id: VALIDATED_ROLL_MODAL_ID,
-      url: "/?view=gain-modal",
-      width: 760,
-      height: computedHeight,
-    });
+const modalUrl = "https://thp21000.github.io/loot-tables-dev/?view=gain-modal";
+
+await OBR.modal.open({
+  id: VALIDATED_ROLL_MODAL_ID,
+  url: modalUrl,
+  width: 760,
+  height: computedHeight,
+});
+
   } catch (error) {
     console.error("Impossible d'ouvrir la modale de gain Owlbear :", error);
   }
