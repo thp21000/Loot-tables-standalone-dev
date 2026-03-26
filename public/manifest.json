@@ -1,0 +1,16 @@
+{
+  "name": "Loot Tables Dev",
+  "version": "0.1.35",
+  "manifest_version": 1,
+  "author": "GM Tools & Resources",
+  "icon":"/icon.svg",
+  "homepage_url": "https://loot-tables-dev-fe6772.gitlab.io",
+  "description": "Version dev interne",
+  "action": {
+    "title": "Loot Tables Dev",
+    "icon": "/icon.svg",
+    "popover": "https://loot-tables-dev-fe6772.gitlab.io",
+    "width": 1150,
+    "height": 950
+  }
+}
