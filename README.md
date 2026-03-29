@@ -11,6 +11,7 @@ Une extension Owlbear Rodeo pour créer, modifier, importer, exporter et lancer 
 
 - Création et modification de tables de loot
 - Support des systèmes **PF2E** et **DND5E** (sélecteur dans l’UI)
+- Sélecteur système/langue dans **Paramètres** (bouton engrenage), avec drapeaux FR/EN
 - Gestion d'objets avec :
   - nom
   - lien de fiche
@@ -26,18 +27,29 @@ Une extension Owlbear Rodeo pour créer, modifier, importer, exporter et lancer 
 - Import / export CSV (format adapté au système)
 - Import CSV dans une table existante
 - Collage multiple depuis Excel
+- Collage multiple tolérant **tabulation**, **;** et **,**
+- Reconnaissance des termes FR/EN en import/collage pour :
+  - catégories
+  - raretés
+  - types
+  - devises
 - Détection simple de doublons à l'import
 - Modal unique pour tous les transferts de fichier (import/export JSON/CSV)
 - Tirage configuré avec :
   - plage de niveau (min/max)
   - plage de quantité (min/max)
   - plage de valeur en pc (min/max)
+  - filtre objets magiques (PF2E uniquement)
   - catégories
   - doublons autorisés ou non
   - mode de probabilité
 - Saisie manuelle précise des bornes min/max (synchronisée avec les sliders)
+- Devises localisées selon langue/système :
+  - DND5E FR/EN : `pc/cp`, `pa/sp`, `pe/ep`, `po/gp`, `pp/pp`
+  - PF2E FR/EN : `pc/cp`, `pa/sp`, `po/gp`, `pp/pp` 
 - Tirage rapide avec les derniers paramètres mémorisés
 - Mémorisation locale de plusieurs états d'interface
+- Barre flottante en édition de table : **Enregistrer**, **Annuler**, **remonter en haut**
 
 ### Installation dans Owlbear Rodeo
 
@@ -56,6 +68,7 @@ Il est fortement recommandé de faire des exports JSON réguliers pour éviter t
 
 - Ouvrir la fenêtre **Paramètres** (bouton engrenage).
 - Utiliser les boutons **PF2E / DND5E**.
+- Le changement de système recharge les tables du système cible.
 - Chaque système a son propre stockage local.
 - Changer de système ne supprime rien : cela affiche simplement l’autre “espace” de tables.
 
@@ -78,6 +91,7 @@ Lors d'un import dans une table existante, il est possible de :
 - remplacer les objets existants
 
 Les doublons simples sont ignorés à l'import.
+Les valeurs importées sont normalisées pour accepter des sources hétérogènes (FR/EN, singulier/pluriel sur certaines catégories).
 
 #### Tirer du loot
 
@@ -96,12 +110,13 @@ Colonnes attendues :
 - `level`
 - `category`
 - `rarity`
+- `magic`
 - `valueAmount`
 - `valueCurrency`
 
 Catégories disponibles
-- `Arme`
-- `Armure`
+- `Armes`
+- `Armures`
 - `Consommable`
 - `Contenant`
 - `Equipement`
@@ -114,12 +129,20 @@ Raretés disponibles
 - `Rare`
 - `Unique`
 
+Magique disponibles
+- `Oui`
+- `Non`
+
+Notes :
+- `type` n’est pas attendu dans ce format PF2E.
+- La devise `pe/ep` n’est pas proposée côté PF2E dans l’UI.
+
 Exemple :
 
 ```csv
-name;url;level;category;rarity;valueAmount;valueCurrency
-Epée courte;https://example.com;1;Arme;Courant;9;pa
-Potion de soins;https://example.com;1;Consommable;Courant;4;po
+name;url;level;category;rarity;magic;valueAmount;valueCurrency
+Epée courte;https://example.com;1;Arme;Courant;non;9;pa
+Potion de soins;https://example.com;1;Consommable;Courant;oui;4;po
 ```
 
 ##### DND5E
@@ -146,18 +169,39 @@ Catégories disponibles
 
 Raretés disponibles
 - `Aucun`
-- `Commun (niv 1)`
-- `Peu commun (niv 1)`
+- `Courant`
+- `Peu courant`
 - `Rare`
-- `Très rare (niv 11)`
-- `Légendaire (niv 17)`
+- `Très rare`
+- `Légendaire`
 - `Artéfact`
+
+Types disponibles
+- `Aucun`
+- `Anneau`
+- `Arme`
+- `Armure`
+- `Baguette`
+- `Bâton`
+- `Objets merveilleux`
+- `Parchemin`
+- `Potion`
+- `Sceptre`
+- `Plante`
+- `Venin`
+- `Toxine`
+- `Mixture`
+- `Altérant`
+- `Antipoison`
+- `Curatif`
+- `Dopant`
+- `Fortifiant`
 
 Exemple :
 
 ```csv
 name;url;category;type;rarity;valueAmount;valueCurrency
-Longsword +1;https://example.com;Armes;Arme martiale;Rare;500;po
+Longsword +1;https://example.com;Armes;Aucun;Rare;500;po
 Potion of Healing;https://example.com;Consommable;Potion;Courant;50;po
 ```
 
@@ -182,6 +226,8 @@ Potion of Healing;https://example.com;Consommable;Potion;Courant;50;po
   - valeur min/max (pc) basée sur les valeurs converties en cuivre des objets de la table
   - quantité max basée sur le nombre d’objets de la table
 - Les bornes min/max peuvent aussi être saisies manuellement via des champs compacts inline.
+- L’aperçu min/max de valeur dans la fenêtre de roll est affiché en équivalences complètes (ex. `pp / po / pe / pa` en DND5E).
+- Les catégories affichées dans la fenêtre de roll utilisent le mapping de traduction centralisé (`gameTerms`) et suivent bien la langue active (FR/EN).
 
 ### Feuille de route
 
@@ -214,6 +260,7 @@ An Owlbear Rodeo extension to create, edit, import, export, and roll loot tables
 
 - Create and edit loot tables
 - Support for **PF2E** and **DND5E** systems (selector in UI)
+- System/language selector moved to **Settings** (gear button), with FR/EN flag icons
 - Item management with:
   - name
   - sheet URL
@@ -229,18 +276,29 @@ An Owlbear Rodeo extension to create, edit, import, export, and roll loot tables
 - CSV import / export (system-aware format)
 - CSV import into an existing table
 - Multi-paste from Excel
+- Multi-paste accepts **tab**, **;**, and **,** separators
+- FR/EN term recognition during import/paste for:
+  - categories
+  - rarities
+  - types
+  - currencies
 - Simple duplicate detection on import
 - Single modal for all file transfers (JSON/CSV import/export)
 - Configurable roll with:
   - level range (min/max)
   - quantity range (min/max)
   - value range in cp (min/max)
+  - magic item filter (PF2E only)
   - categories
   - duplicates allowed or not
   - probability mode
 - Precise manual min/max input (synchronized with sliders)
+- Currency labels are localized by language/system:
+  - DND5E FR/EN: `pc/cp`, `pa/sp`, `pe/ep`, `po/gp`, `pp/pp`
+  - PF2E FR/EN: `pc/cp`, `pa/sp`, `po/gp`, `pp/pp`
 - Quick roll with last-used settings
 - Local persistence of multiple UI states
+- Floating action bar in table edit mode: **Save**, **Cancel**, **Back to top**
 
 ### Installation in Owlbear Rodeo
 
@@ -259,6 +317,7 @@ It is strongly recommended to export JSON backups regularly to avoid data loss.
 
 - Open **Settings** (gear button).
 - Use **PF2E / DND5E** buttons.
+- System switch reloads the target system tables.
 - Each system has its own local storage.
 - Switching system does not delete anything: it simply shows the other table space.
 
@@ -281,6 +340,7 @@ When importing into an existing table, you can:
 - replace existing items
 
 Simple duplicates are ignored during import.
+Imported values are normalized to support heterogeneous sources (FR/EN terms, singular/plural variants for some categories).
 
 #### Roll loot
 
@@ -299,25 +359,34 @@ Expected columns:
 - `level`
 - `category`
 - `rarity`
+- `magic`
 - `valueAmount`
 - `valueCurrency`
 
 Available categories
-- `Arme`
-- `Armure`
-- `Consommable`
-- `Contenant`
-- `Equipement`
-- `Trésor`
-- `Autre`
+- `Weapons`
+- `Armors`
+- `Consumable`
+- `Container`
+- `Equipment`
+- `Treasure`
+- `Other`
 
 Available rarities
-- `Courant`
-- `Peu courant`
+- `Common`
+- `Uncommon`
 - `Rare`
 - `Unique`
 
-Example:
+Available magic
+- `Yes`
+- `No`
+
+Notes:
+- `type` is not expected in PF2E format.
+- `pe/ep` is not offered in PF2E currency options in the UI.
+
+Example: 
 
 ```csv
 name;url;level;category;rarity;valueAmount;valueCurrency
@@ -337,39 +406,60 @@ Expected columns:
 - `valueCurrency`
 
 Available categories
-- `Armes`
-- `Armures`
-- `Équipement d'aventurier`
-- `Outils`
-- `Montures et véhicules`
-- `Marchandises`
-- `Objets magiques`
+- `Weapons`
+- `Armors`
+- `Adventuring gear`
+- `Tools`
+- `Mounts & vehicles`
+- `Trade goods`
+- `Magic items`
 - `Poisons`
-- `Herbes`
+- `Herbs`
 
 Available rarities
-- `Aucun`
-- `Commun (niv 1)`
-- `Peu commun (niv 1)`
+- `None`
+- `Common`
+- `Uncommon`
 - `Rare`
-- `Très rare (niv 11)`
-- `Légendaire (niv 17)`
-- `Artéfact`
+- `Very Rare`
+- `Legendary`
+- `Artifact`
+
+Available type
+- `None`
+- `Ring`
+- `Weapon`
+- `Armor`
+- `Wand`
+- `Staff`
+- `Wondrous item`
+- `Scroll`
+- `Potion`
+- `Rod`
+- `Plant`
+- `Venom`
+- `Toxin`
+- `Mixture`
+- `Altering`
+- `Antidote`
+- `Healing`
+- `Booster`
+- `Fortifying`
 
 Example:
 
 ```csv
-name;url;category;type;rarity;valueAmount;valueCurrency
-Longsword +1;https://example.com;Weapons;Martial Weapon;Rare;500;gp
-Potion of Healing;https://example.com;Consumable;Potion;Common;50;gp
+name;url;level;category;rarity;magic;valueAmount;valueCurrency
+Short Sword;https://example.com;1;Weapon;Common;no;9;sp
+Healing Potion;https://example.com;1;Consumable;Common;yes;4;gp
 ```
 
 #### Available currencies
 
-- `pc`
-- `pa`
-- `pe`
-- `po`
+- `cp`
+- `sp`
+- `ep`
+- `gp`
 - `pp`
 
 ### Current limitations
@@ -385,6 +475,8 @@ Potion of Healing;https://example.com;Consumable;Potion;Common;50;gp
   - value min/max (cp) based on item values converted to copper
   - quantity max based on the table item count
 - Min/max bounds can also be entered manually using compact inline inputs.
+- Roll value min/max preview is displayed as full currency equivalents (e.g. `pp / po / pe / pa` in DND5E).
+- Category chips displayed in the roll dialog use the shared `gameTerms` translation mapping and follow the active UI language (FR/EN).
 
 ### Roadmap
 

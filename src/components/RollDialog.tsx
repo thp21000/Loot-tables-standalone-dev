@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import type { LootCategory, ProbabilityMode, RollOptions } from "../types";
+import type { GameSystem, LootCategory, LootCurrency, ProbabilityMode, RollOptions } from "../types";
 import { buttons, controls, colors, typography } from "../styles/ui";
 import { useI18n } from "../i18n";
+import { tCategory, tCurrency } from "../i18n/gameTerms";
 
 type RollDialogProps = {
   isOpen: boolean;
+  currentSystem: GameSystem;
   tableName: string;
   tableItems: Array<{ level: number; valueAmount: number; valueCurrency: "pc" | "pa" | "pe" | "po" | "pp" }>;
   availableCategories: LootCategory[];
@@ -200,6 +202,7 @@ function DualSlider({
 
 export default function RollDialog({
   isOpen,
+  currentSystem,
   tableName,
   tableItems,
   availableCategories,
@@ -208,7 +211,7 @@ export default function RollDialog({
   onConfirm,
   onShowAlert,
 }: RollDialogProps) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [minLevel, setMinLevel] = useState(0);
   const [maxLevel, setMaxLevel] = useState(1);
   const [minQuantity, setMinQuantity] = useState(1);
@@ -219,6 +222,7 @@ export default function RollDialog({
     []
   );
   const [allowDuplicates, setAllowDuplicates] = useState(false);
+  const [allowMagic, setAllowMagic] = useState(true);
   const [probabilityMode, setProbabilityMode] =
     useState<ProbabilityMode>("balanced");
   
@@ -244,6 +248,29 @@ export default function RollDialog({
 
   const quantityBounds = { min: 1, max: Math.max(1, tableItems.length) };
 
+  function formatPcEquivalentValues(valueInPc: number): string {
+    const safeValue = Math.max(0, valueInPc);
+    const units: Array<{ code: LootCurrency; factor: number }> =
+      currentSystem === "DND5E"
+        ? [
+            { code: "pp", factor: 1000 },
+            { code: "po", factor: 100 },
+            { code: "pe", factor: 50 },
+            { code: "pa", factor: 10 },
+          ]
+        : [
+            { code: "pp", factor: 1000 },
+            { code: "po", factor: 100 },
+            { code: "pa", factor: 10 },
+          ];
+
+    const formatNumber = (value: number) => Number(value.toFixed(2)).toString();
+
+    return units
+      .map((unit) => `${formatNumber(safeValue / unit.factor)} ${tCurrency(unit.code, language)}`)
+      .join(" / ");
+  }
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -255,6 +282,7 @@ export default function RollDialog({
     setMaxValuePc(Math.max(valueBounds.min, Math.min(initialOptions.maxValuePc, valueBounds.max)));
     setSelectedCategories(initialOptions.categories);
     setAllowDuplicates(initialOptions.allowDuplicates);
+    setAllowMagic(initialOptions.allowMagic);
     setProbabilityMode(initialOptions.probabilityMode);
   }, [isOpen, initialOptions, levelBounds.min, levelBounds.max, valueBounds.min, valueBounds.max, quantityBounds.min, quantityBounds.max]);
 
@@ -291,6 +319,7 @@ export default function RollDialog({
       maxValuePc,
       categories: selectedCategories,
       allowDuplicates,
+      allowMagic,
       probabilityMode,
     });
   }
@@ -330,58 +359,60 @@ export default function RollDialog({
         </p>
 
         <div style={{ display: "grid", gap: "16px" }}>
-          <div>
-          <label style={typography.label}>{t("roll.levelRange")}</label>
-            <div style={{ display: "grid", gap: "8px" }}>
-            <DualSlider
-                min={levelBounds.min}
-                max={levelBounds.max}
-                minValue={minLevel}
-                maxValue={maxLevel}
-                onMinChange={(value) => setMinLevel(Math.min(value, maxLevel))}
-                onMaxChange={(value) => setMaxLevel(Math.max(value, minLevel))}
-              />
-              <div
-                style={{
-                  ...typography.pageSubtitle,
-                  margin: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <span>{t("roll.min")}</span>
-                <input
-                  type="number"
+          {currentSystem === "PF2E" ? (
+            <div>
+              <label style={typography.label}>{t("roll.levelRange")}</label>
+              <div style={{ display: "grid", gap: "8px" }}>
+                <DualSlider
                   min={levelBounds.min}
-                  max={maxLevel}
-                  value={minLevel}
-                  onChange={(event) => {
-                    const next = Number(event.target.value);
-                    if (Number.isNaN(next)) return;
-                    setMinLevel(Math.max(levelBounds.min, Math.min(next, maxLevel)));
-                  }}
-                  style={{ ...controls.input, width: "90px", padding: "6px 8px" }}
-                />
-                <span>{t("roll.max")}</span>
-                <input
-                  type="number"
-                  min={minLevel}
                   max={levelBounds.max}
-                  value={maxLevel}
-                  onChange={(event) => {
-                    const next = Number(event.target.value);
-                    if (Number.isNaN(next)) return;
-                    setMaxLevel(Math.min(levelBounds.max, Math.max(next, minLevel)));
-                  }}
-                  style={{ ...controls.input, width: "90px", padding: "6px 8px" }}
+                  minValue={minLevel}
+                  maxValue={maxLevel}
+                  onMinChange={(value) => setMinLevel(Math.min(value, maxLevel))}
+                  onMaxChange={(value) => setMaxLevel(Math.max(value, minLevel))}
                 />
-                <span>{t("column.level")}</span>
+                <div
+                  style={{
+                    ...typography.pageSubtitle,
+                    margin: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span>{t("roll.min")}</span>
+                  <input
+                    type="number"
+                    min={levelBounds.min}
+                    max={maxLevel}
+                    value={minLevel}
+                    onChange={(event) => {
+                      const next = Number(event.target.value);
+                      if (Number.isNaN(next)) return;
+                      setMinLevel(Math.max(levelBounds.min, Math.min(next, maxLevel)));
+                    }}
+                    style={{ ...controls.input, width: "90px", padding: "6px 8px" }}
+                  />
+                  <span>{t("roll.max")}</span>
+                  <input
+                    type="number"
+                    min={minLevel}
+                    max={levelBounds.max}
+                    value={maxLevel}
+                    onChange={(event) => {
+                      const next = Number(event.target.value);
+                      if (Number.isNaN(next)) return;
+                      setMaxLevel(Math.min(levelBounds.max, Math.max(next, minLevel)));
+                    }}
+                    style={{ ...controls.input, width: "90px", padding: "6px 8px" }}
+                  />
+                  <span>{t("column.level")}</span>
+                </div>
               </div>
             </div>
-          </div>
+          ) : null}
 
           <div>
           <label style={typography.label}>{t("roll.quantityRange")}</label>
@@ -473,7 +504,7 @@ export default function RollDialog({
                   }}
                   style={{ ...controls.input, width: "110px", padding: "6px 8px" }}
                 />
-                <span>pc</span>
+                <span>{tCurrency("pc", language)}</span>
                 <span>{t("roll.max")}</span>
                 <input
                   type="number"
@@ -488,8 +519,18 @@ export default function RollDialog({
                   }}
                   style={{ ...controls.input, width: "110px", padding: "6px 8px" }}
                 />
-                <span>pc</span>
+                <span>{tCurrency("pc", language)}</span>
               </div>
+              <p
+                style={{
+                  ...typography.pageSubtitle,
+                  margin: 0,
+                  textAlign: "center",
+                }}
+              >
+                {t("roll.valuePreviewMin", { value: formatPcEquivalentValues(minValuePc) })} ·{" "}
+                {t("roll.valuePreviewMax", { value: formatPcEquivalentValues(maxValuePc) })}
+              </p>
             </div>
           </div>
 
@@ -503,10 +544,18 @@ export default function RollDialog({
               style={controls.select}
             >
               <option value="balanced">{t("roll.mode.balanced")}</option>
-              <option value="low-soft">{t("roll.mode.lowSoft")}</option>
-              <option value="low-strong">{t("roll.mode.lowStrong")}</option>
-              <option value="high-soft">{t("roll.mode.highSoft")}</option>
-              <option value="high-strong">{t("roll.mode.highStrong")}</option>
+              <option value="low-soft">
+                {currentSystem === "DND5E" ? t("roll.mode.lowSoftDnd") : t("roll.mode.lowSoft")}
+              </option>
+              <option value="low-strong">
+                {currentSystem === "DND5E" ? t("roll.mode.lowStrongDnd") : t("roll.mode.lowStrong")}
+              </option>
+              <option value="high-soft">
+                {currentSystem === "DND5E" ? t("roll.mode.highSoftDnd") : t("roll.mode.highSoft")}
+              </option>
+              <option value="high-strong">
+                {currentSystem === "DND5E" ? t("roll.mode.highStrongDnd") : t("roll.mode.highStrong")}
+              </option>
               <option value="rarity-only">{t("roll.mode.rarityOnly")}</option>
             </select>
           </div>
@@ -528,7 +577,7 @@ export default function RollDialog({
                       background: isSelected ? colors.primary : colors.secondary,
                     }}
                   >
-                    {category}
+                    {tCategory(category, language)}
                   </button>
                 );
               })}
@@ -564,6 +613,27 @@ export default function RollDialog({
               {t("roll.allowDuplicates")}
             </label>
           </div>
+
+          {currentSystem === "PF2E" ? (
+            <div>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  color: colors.textSoft,
+                  fontWeight: 600,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={allowMagic}
+                  onChange={(event) => setAllowMagic(event.target.checked)}
+                />
+                {t("roll.allowMagic")}
+              </label>
+            </div>
+          ) : null}
         </div>
 
         <div

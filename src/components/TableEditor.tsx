@@ -9,7 +9,7 @@ import type {
 } from "../types";
 import { buttons, colors, controls, layout, radius, typography } from "../styles/ui";
 import { useI18n } from "../i18n";
-import { tCategory, tRarity, tType } from "../i18n/gameTerms";
+import { getCurrencyOptions, tCategory, tCurrency, tRarity, tType } from "../i18n/gameTerms";
 
 type TableEditorProps = {
   table: LootTable;
@@ -27,8 +27,8 @@ type EditableLootItem = LootItem & {
 // L’affichage est localisé via tCategory/tRarity/tType dans le rendu.
 
 const PF2E_CATEGORY_OPTIONS: LootCategory[] = [
-  "Arme",
-  "Armure",
+  "Armes",
+  "Armures",
   "Consommable",
   "Contenant",
   "Equipement",
@@ -79,17 +79,16 @@ const DND5E_TYPE_OPTIONS = [
 
 const DND5E_RARITY_OPTIONS: LootRarity[] = [
   "Aucun",
-  "Commun (niv 1)",
-  "Peu commun (niv 1)",
+  "Courant",
+  "Peu courant",
   "Rare",
-  "Très rare (niv 11)",
-  "Légendaire (niv 17)",
+  "Très rare",
+  "Légendaire",
   "Artéfact",
 ];
 
-const CURRENCY_OPTIONS: LootCurrency[] = ["pc", "pa", "pe", "po", "pp"];
 const EDITOR_ITEM_GRID_TEMPLATE_PF2E =
-  "minmax(220px, 300px) minmax(160px, 220px) 86px 130px 130px 160px auto";
+  "minmax(220px, 300px) minmax(160px, 220px) 86px 130px 96px 130px 160px auto";
 const EDITOR_ITEM_GRID_TEMPLATE_DND5E =
   "minmax(220px, 300px) minmax(160px, 220px) 130px 130px 130px 160px auto";
 const EDITOR_ITEM_MIN_WIDTH = "980px";
@@ -101,6 +100,7 @@ function createEmptyItem(): EditableLootItem {
     url: "",
     level: 0,
     category: "Autre",
+    magic: false,
     type: "Aucun",
     rarity: "Courant",
     valueAmount: 0,
@@ -111,42 +111,74 @@ function createEmptyItem(): EditableLootItem {
 }
 
 function getRarityColor(rarity: LootRarity): string {
+  if (rarity === "Aucun") return "#9ca3af";
   if (rarity === "Courant") return "#9ca3af";
   if (rarity === "Peu courant") return "#f59e0b";
   if (rarity === "Rare") return "#60a5fa";
+  if (rarity === "Très rare") return "#2c68b1";
+  if (rarity === "Légendaire") return "#00ff00";
+  if (rarity === "Unique") return "#a78bfa";
+  if (rarity === "Artéfact") return "#a78bfa";
   return "#a78bfa";
 }
 
 function normalizePastedCategory(value: string): LootCategory {
-  if (
-    value === "Arme" ||
-    value === "Armure" ||
-    value === "Consommable" ||
-    value === "Contenant" ||
-    value === "Equipement" ||
-    value === "Trésor"
-  ) {
-    return value;
+    const normalized = value.trim().toLowerCase();
+
+  if (normalized === "arme" || normalized === "armes" || normalized === "weapon" || normalized === "weapons") {
+    return "Armes";
   }
+  if (normalized === "armure" || normalized === "armures" || normalized === "armor" || normalized === "armors") {
+    return "Armures";
+  }
+  if (normalized === "consommable" || normalized === "consumable") return "Consommable";
+  if (normalized === "contenant" || normalized === "container") return "Contenant";
+  if (normalized === "equipement" || normalized === "équipement" || normalized === "equipment") return "Equipement";
+  if (normalized === "trésor" || normalized === "tresor" || normalized === "treasure") return "Trésor";
+  if (normalized === "équipement d'aventurier" || normalized === "equipement d'aventurier" || normalized === "adventuring gear") {
+    return "Équipement d'aventurier";
+  }
+  if (normalized === "outils" || normalized === "tools") return "Outils";
+  if (normalized === "montures et véhicules" || normalized === "mounts & vehicles") return "Montures et véhicules";
+  if (normalized === "marchandises" || normalized === "trade goods") return "Marchandises";
+  if (normalized === "objets magiques" || normalized === "magic items") return "Objets magiques";
+  if (normalized === "poisons" || normalized === "poison") return "Poisons";
+  if (normalized === "herbes" || normalized === "herbs") return "Herbes";
+  
   return "Autre";
 }
 
 function normalizePastedRarity(value: string): LootRarity {
-  if (
-    value === "Courant" ||
-    value === "Peu courant" ||
-    value === "Rare" ||
-    value === "Unique"
-  ) {
-    return value;
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized === "aucun" || normalized === "none") return "Aucun";
+  if (normalized === "courant" || normalized === "common" || normalized === "common (lvl 1)" || normalized === "commun (niv 1)") {
+    return "Courant";
   }
+  if (normalized === "peu courant" || normalized === "uncommon" || normalized === "uncommon (lvl 1)" || normalized === "peu commun (niv 1)") {
+    return "Peu courant";
+  }
+   if (normalized === "rare") return "Rare";
+  if (normalized === "très rare" || normalized === "tres rare" || normalized === "very rare" || normalized === "very rare (lvl 11)" || normalized === "très rare (niv 11)" || normalized === "tres rare (niv 11)") {
+    return "Très rare";
+  }
+  if (normalized === "légendaire" || normalized === "legendaire" || normalized === "legendary" || normalized === "legendary (lvl 17)" || normalized === "légendaire (niv 17)" || normalized === "legendaire (niv 17)") {
+    return "Légendaire";
+  }
+  if (normalized === "artéfact" || normalized === "artefact" || normalized === "artifact") return "Artéfact";
+  if (normalized === "unique") return "Unique";
   return "Courant";
 }
 
 function normalizePastedCurrency(value: string): LootCurrency {
-  if (value === "pc" || value === "pa" || value === "po" || value === "pp") {
-    return value;
-  }
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized === "pc" || normalized === "cp") return "pc";
+  if (normalized === "pa" || normalized === "sp") return "pa";
+  if (normalized === "pe" || normalized === "ep") return "pe";
+  if (normalized === "po" || normalized === "gp") return "po";
+  if (normalized === "pp") return "pp";
+
   return "pc";
 }
 
@@ -161,7 +193,21 @@ function parsePastedRows(text: string): LootItem[] {
   }
 
   return lines.map((line) => {
-    const parts = line.split("\t");
+    const parts = (() => {
+      if (line.includes("\t")) {
+        return line.split("\t");
+      }
+
+      if (line.includes(";")) {
+        return line.split(";");
+      }
+
+      if (line.includes(",")) {
+        return line.split(",");
+      }
+
+      return [line];
+    })();
 
     return {
       id: crypto.randomUUID(),
@@ -169,6 +215,7 @@ function parsePastedRows(text: string): LootItem[] {
       url: (parts[1] ?? "").trim(),
       level: Number(parts[2]) || 0,
       category: normalizePastedCategory((parts[3] ?? "").trim()),
+      magic: false,
       type: "Aucun",
       rarity: normalizePastedRarity((parts[4] ?? "").trim()),
       valueAmount: Number(parts[5]) || 0,
@@ -189,6 +236,7 @@ export default function TableEditor({
     currentSystem === "DND5E" ? DND5E_CATEGORY_OPTIONS : PF2E_CATEGORY_OPTIONS;
   const rarityOptions =
     currentSystem === "DND5E" ? DND5E_RARITY_OPTIONS : PF2E_RARITY_OPTIONS;
+  const currencyOptions = getCurrencyOptions(currentSystem);
   const editorItemGridTemplate =
     currentSystem === "DND5E"
       ? EDITOR_ITEM_GRID_TEMPLATE_DND5E
@@ -343,6 +391,7 @@ export default function TableEditor({
       url: item.url.trim(),
       level: Number(item.level) || 0,
       category: item.category,
+      magic: Boolean(item.magic),
       type: item.type || "Aucun",
       rarity: item.rarity,
       valueAmount: Number(item.valueAmount) || 0,
@@ -450,6 +499,7 @@ export default function TableEditor({
         <div>{t("column.sheet")}</div>
         {currentSystem === "PF2E" ? <div>{t("column.level")}</div> : null}
         <div>{t("column.category")}</div>
+        {currentSystem === "PF2E" ? <div>{t("column.magic")}</div> : null}
         {currentSystem === "DND5E" ? <div>{t("column.type")}</div> : null}
         <div>{t("column.rarity")}</div>
         <div>{t("column.amount")}</div>
@@ -526,6 +576,19 @@ export default function TableEditor({
                   ))}
                 </select>
 
+                {currentSystem === "PF2E" ? (
+                  <select
+                    value={item.magic ? "yes" : "no"}
+                    onChange={(event) =>
+                      handleItemChange(item.id, "magic", event.target.value === "yes")
+                    }
+                    style={{ ...controls.select, textAlign: "center" }}
+                  >
+                    <option value="no">{t("common.no")}</option>
+                    <option value="yes">{t("common.yes")}</option>
+                  </select>
+                ) : null}
+
                 {currentSystem === "DND5E" ? (
                   <select
                     value={item.type || "Aucun"}
@@ -586,9 +649,9 @@ export default function TableEditor({
                     }
                     style={{ ...controls.select, textAlign: "center" }}
                   >
-                    {CURRENCY_OPTIONS.map((option) => (
+                    {currencyOptions.map((option) => (
                       <option key={option} value={option}>
-                        {option}
+                        {tCurrency(option, language)}
                       </option>
                     ))}
                   </select>
@@ -653,11 +716,14 @@ export default function TableEditor({
 
               {currentSystem === "PF2E" ? <div>{t("common.levelShort")} {item.level}</div> : null}
                 <div>{tCategory(item.category, language)}</div>
+              {currentSystem === "PF2E" ? <div>{item.magic ? t("common.yes") : t("common.no")}</div> : null}
               {currentSystem === "DND5E" ? <div>{tType(item.type || "Aucun", language)}</div> : null}
                 <div style={{ color: getRarityColor(item.rarity), fontWeight: 700 }}>
                 {tRarity(item.rarity, language)}
               </div>
-              <div>{item.valueAmount} {item.valueCurrency}</div>
+              <div>
+                {item.valueAmount} {tCurrency(item.valueCurrency, language)}
+              </div>
 
               <div style={layout.centerRow}>
                 <button title={t("editor.alt.edit")} aria-label={t("editor.alt.edit")} onClick={() => handleEditItem(item.id)} style={buttons.icon}>

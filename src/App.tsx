@@ -59,6 +59,7 @@ function getItemSignature(item: Omit<LootItem, "id"> | LootItem): string {
     item.name.trim().toLowerCase(),
     item.level,
     item.category,
+    item.magic ? "1" : "0",
     item.rarity,
     item.valueAmount,
     item.valueCurrency,
@@ -132,6 +133,7 @@ function buildValidatedSummary(
       url: item.url,
       level: item.level,
       category: item.category,
+      magic: item.magic,
       type: item.type,
       rarity: item.rarity,
       valueAmount: item.valueAmount,
@@ -169,13 +171,14 @@ function getRoleLabel(
 type TransferAction = "import" | "export";
 type TransferScope = "global" | "table" | "new-table";
 type TransferFormat = "json" | "csv";
+const NEWS_SEEN_SESSION_KEY = "loot-tables-news-seen-v1";
 
 export default function App() {
   const { language, setLanguage, t } = useI18n();
   const initialUIState = loadUIState();
-  const [currentSystem, setCurrentSystem] = useState<GameSystem>("PF2E");
+  const [currentSystem, setCurrentSystem] = useState<GameSystem>(initialUIState.currentSystem);
 
-  const [tables, setTables] = useState<LootTable[]>(() => loadTables("PF2E"));
+  const [tables, setTables] = useState<LootTable[]>(() => loadTables(initialUIState.currentSystem));
   const [editingTableId, setEditingTableId] = useState<string | null>(null);
   const [rollingTableId, setRollingTableId] = useState<string | null>(null);
   const [lastRollTableId, setLastRollTableId] = useState<string | null>(null);
@@ -207,7 +210,7 @@ export default function App() {
 
   const transferFileInputRef = useRef<HTMLInputElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const lastSystemForSaveRef = useRef<GameSystem>("PF2E");
+  const lastSystemForSaveRef = useRef<GameSystem>(initialUIState.currentSystem);
 
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [transferAction, setTransferAction] = useState<TransferAction>("import");
@@ -216,6 +219,7 @@ export default function App() {
   const [transferTableId, setTransferTableId] = useState<string>("");
   const [transferImportMode, setTransferImportMode] = useState<ImportMode>("append");
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isNewsModalOpen, setIsNewsModalOpen] = useState(false);
 
   useEffect(() => {
     const hasSystemChanged = lastSystemForSaveRef.current !== currentSystem;
@@ -248,12 +252,13 @@ export default function App() {
   useEffect(() => {
     saveUIState({
       searchTerm,
+      currentSystem,
       tableSortMode,
       expandedTableIds,
       itemSortModes,
       lastRollOptions,
     });
-  }, [searchTerm, tableSortMode, expandedTableIds, itemSortModes, lastRollOptions]);
+  }, [currentSystem, searchTerm, tableSortMode, expandedTableIds, itemSortModes, lastRollOptions]);
 
   useEffect(() => {
     if (tables.length === 0) {
@@ -265,6 +270,14 @@ export default function App() {
       setTransferTableId(tables[0].id);
     }
   }, [tables, transferTableId]);
+
+  useEffect(() => {
+    const hasSeenNews = sessionStorage.getItem(NEWS_SEEN_SESSION_KEY) === "1";
+    if (!hasSeenNews) {
+      setIsNewsModalOpen(true);
+      sessionStorage.setItem(NEWS_SEEN_SESSION_KEY, "1");
+    }
+  }, []);
 
   useEffect(() => {
     let unsubscribeRoom: (() => void) | null = null;
@@ -358,7 +371,7 @@ export default function App() {
 
     const newTable: LootTable = {
       id: crypto.randomUUID(),
-      name: `Nouvelle table ${tables.length + 1}`,
+      name: `${t("app.newTablePrefix")} ${tables.length + 1}`,
       system: currentSystem,
       items: [],
       createdAt: now,
@@ -782,6 +795,19 @@ export default function App() {
     setIsSettingsModalOpen(false);
   }
 
+  function openNewsModal() {
+    setIsNewsModalOpen(true);
+    sessionStorage.setItem(NEWS_SEEN_SESSION_KEY, "1");
+  }
+
+  function closeNewsModal() {
+    setIsNewsModalOpen(false);
+  }
+
+  function switchLanguageFromNews(nextLanguage: "fr" | "en") {
+    setLanguage(nextLanguage);
+  }
+
   const rollingTable =
     rollingTableId === null
       ? null
@@ -1064,8 +1090,89 @@ export default function App() {
                 />
                 <span>{t("lang.en")}</span>
               </button>
+              </div>
+              </div>
+
+              <div>
+                <p style={{ ...typography.label, marginBottom: "8px" }}>
+                  {t("app.settings.news")}
+                </p>
+                <button type="button" onClick={openNewsModal} style={buttons.secondary}>
+                  {t("app.settings.news.open")}
+                </button>
+              </div>
             </div>
+          </Modal>
+
+      <Modal
+        isOpen={isNewsModalOpen}
+        title={t("news.title")}
+        onClose={closeNewsModal}
+        footer={
+          <button type="button" onClick={closeNewsModal} style={buttons.primary}>
+            {t("common.close")}
+          </button>
+        }
+      >
+        <div style={{ display: "grid", gap: "10px" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+            <button
+              type="button"
+              onClick={() => switchLanguageFromNews("fr")}
+              style={{
+                ...buttons.icon,
+                width: "40px",
+                height: "32px",
+                border:
+                  language === "fr"
+                    ? `2px solid ${colors.primary}`
+                    : `1px solid ${colors.border}`,
+                background: language === "fr" ? colors.primary : colors.secondary,
+              }}
+              aria-label={t("lang.fr")}
+              title={t("lang.fr")}
+            >
+              <img
+                src={flagFr}
+                alt={t("lang.fr")}
+                style={{ width: "22px", height: "16px", borderRadius: "2px" }}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={() => switchLanguageFromNews("en")}
+              style={{
+                ...buttons.icon,
+                width: "40px",
+                height: "32px",
+                border:
+                  language === "en"
+                    ? `2px solid ${colors.primary}`
+                    : `1px solid ${colors.border}`,
+                background: language === "en" ? colors.primary : colors.secondary,
+              }}
+              aria-label={t("lang.en")}
+              title={t("lang.en")}
+            >
+              <img
+                src={flagGb}
+                alt={t("lang.en")}
+                style={{ width: "22px", height: "16px", borderRadius: "2px" }}
+              />
+            </button>
           </div>
+          <p style={{ ...typography.pageSubtitle, textAlign: "left", margin: 0 }}>
+            {t("news.intro")}
+          </p>
+          <ul style={{ margin: 0, paddingLeft: "18px", color: colors.textSoft, lineHeight: 1.45 }}>
+            <li>{t("news.item.1")}</li>
+            <li>{t("news.item.2")}</li>
+            <li>{t("news.item.3")}</li>
+            <li>{t("news.item.4")}</li>
+          </ul>
+          <p style={{ ...typography.pageSubtitle, textAlign: "left", marginBottom: 0 }}>
+            {t("news.important")}
+          </p>
         </div>
       </Modal>
 
@@ -1171,6 +1278,7 @@ export default function App() {
       <RollDialog
         key={`roll-dialog-${language}`}
         isOpen={rollingTable !== null}
+        currentSystem={currentSystem}
         tableName={rollingTable?.name ?? ""}
         tableItems={rollingTable?.items ?? []}
         availableCategories={

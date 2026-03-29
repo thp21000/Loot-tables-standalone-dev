@@ -23,12 +23,10 @@ export type LootCategory =
   | "Courant"
   | "Peu courant"
   | "Rare"
-  | "Unique"
-  | "Commun (niv 1)"
-  | "Peu commun (niv 1)"
-  | "Très rare (niv 11)"
-  | "Légendaire (niv 17)"
-  | "Artéfact";
+  | "Très rare"
+  | "Légendaire"
+  | "Artéfact"
+  | "Unique";
 
 export type LootCurrency = "pc" | "pa" | "pe" | "po" | "pp";
 
@@ -53,6 +51,8 @@ export type ItemSortMode =
   | "name-desc"
   | "level-asc"
   | "level-desc"
+  | "type-asc"
+  | "type-desc"
   | "category-asc"
   | "category-desc"
   | "rarity-asc"
@@ -70,6 +70,7 @@ export type LootItem = {
   url: string;
   level: number;
   category: LootCategory;
+  magic: boolean;
   type: string;
   rarity: LootRarity;
   valueAmount: number;
@@ -94,6 +95,7 @@ export type RollOptions = {
   maxValuePc: number;
   categories: LootCategory[];
   allowDuplicates: boolean;
+  allowMagic: boolean;
   probabilityMode: ProbabilityMode;
 };
 
@@ -105,12 +107,14 @@ export type RolledLootItem = LootItem & {
 export type RollResult = {
   tableId: string;
   tableName: string;
+  system: GameSystem;
   options: RollOptions;
   items: RolledLootItem[];
   rolledAt: string;
 };
 
 export type UIState = {
+  currentSystem: GameSystem;
   searchTerm: string;
   tableSortMode: TableSortMode;
   expandedTableIds: string[];
@@ -129,6 +133,7 @@ export type ValidatedRollSummaryItem = {
   url: string;
   level: number;
   category: LootCategory;
+  magic: boolean;
   type: string;
   rarity: LootRarity;
   valueAmount: number;

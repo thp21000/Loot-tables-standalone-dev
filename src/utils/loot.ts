@@ -10,15 +10,14 @@ import type {
 } from "../types";
 
 function getRarityWeight(rarity: LootRarity): number {
-  if (rarity === "Aucun") return 100;
-  if (rarity === "Courant") return 100;
-  if (rarity === "Commun (niv 1)") return 100;
-  if (rarity === "Peu courant") return 40;
-  if (rarity === "Peu commun (niv 1)") return 40;
+  if (rarity === "Aucun") return 1;
+  if (rarity === "Courant") return 1;
+  if (rarity === "Peu courant") return 5;
   if (rarity === "Rare") return 10;
-  if (rarity === "Très rare (niv 11)") return 3;
-  if (rarity === "Légendaire (niv 17)") return 1;
-  if (rarity === "Artéfact") return 0.5;
+  if (rarity === "Très rare") return 20;
+  if (rarity === "Légendaire") return 40;
+  if (rarity === "Artéfact") return 60;
+  if (rarity === "Unique") return 20;
   return 1;
 }
 
@@ -30,14 +29,24 @@ function getValueInCopper(item: LootItem): number {
   return item.valueAmount * 1000;
 }
 
-function getLevelFactor(
-  itemLevel: number,
-  minLevel: number,
-  maxLevel: number,
+function getRarityRank(rarity: LootRarity): number {
+  if (rarity === "Aucun") return 1;
+  if (rarity === "Courant") return 2;
+  if (rarity === "Peu courant") return 3;
+  if (rarity === "Rare") return 4;
+  if (rarity === "Très rare") return 5;
+  if (rarity === "Unique") return 6;
+  if (rarity === "Légendaire") return 7;
+  if (rarity === "Artéfact") return 8;
+  return 1;
+}
+
+function getModeFactor(
+  system: LootTable["system"],
+  lowDistance: number,
+  highDistance: number,
   mode: ProbabilityMode
 ): number {
-  const lowDistance = itemLevel - minLevel + 1;
-  const highDistance = maxLevel - itemLevel + 1;
 
   if (lowDistance <= 0 || highDistance <= 0) {
     return 0;
@@ -47,20 +56,23 @@ function getLevelFactor(
     return 1;
   }
 
+  const softPower = system === "DND5E" ? 1.5 : 2;
+  const strongPower = system === "DND5E" ? 3 : 4;
+
   if (mode === "low-soft") {
-    return Math.pow(highDistance, 1.5);
+    return Math.pow(highDistance, softPower);
   }
 
   if (mode === "low-strong") {
-    return Math.pow(highDistance, 2);
+    return Math.pow(highDistance, strongPower);
   }
 
   if (mode === "high-soft") {
-    return Math.pow(lowDistance, 1.5);
+    return Math.pow(lowDistance, softPower);
   }
 
   if (mode === "high-strong") {
-    return Math.pow(lowDistance, 2);
+    return Math.pow(lowDistance, strongPower);
   }
 
   return 1;
@@ -68,16 +80,37 @@ function getLevelFactor(
 
 function getEffectiveWeight(
   item: LootItem,
-  minLevel: number,
-  maxLevel: number,
-  mode: ProbabilityMode
+  table: LootTable,
+  options: RollOptions
 ): number {
-  if (item.level < minLevel || item.level > maxLevel) return 0;
-
   const rarityWeight = getRarityWeight(item.rarity);
-  const levelFactor = getLevelFactor(item.level, minLevel, maxLevel, mode);
 
-  return rarityWeight * levelFactor;
+  if (table.system === "DND5E") {
+    if (options.probabilityMode === "rarity-only") {
+      return rarityWeight;
+    }
+
+    if (options.probabilityMode === "balanced") {
+      return 1;
+    }
+
+    const rarityRank = getRarityRank(item.rarity);
+    const maxRarityRank = 8;
+    const lowDistance = rarityRank;
+    const highDistance = maxRarityRank - rarityRank + 1;
+    const rarityFactor = getModeFactor(table.system, lowDistance, highDistance, options.probabilityMode);
+    return rarityFactor;
+  }
+
+  if (item.level < options.minLevel || item.level > options.maxLevel) return 0;
+
+  const baseWeight = rarityWeight;
+  const lowDistance = item.level - options.minLevel + 1;
+  const highDistance = options.maxLevel - item.level + 1;
+  const levelFactor = getModeFactor(table.system, lowDistance, highDistance, options.probabilityMode);
+
+
+  return baseWeight * levelFactor;
 }
 
 function weightedPick(items: RolledLootItem[]): RolledLootItem | null {
@@ -129,26 +162,25 @@ export function rollLootTable(
 ): RollResult {
   const filteredBaseItems = table.items.filter((item) => {
     const matchesLevel =
-      item.level >= options.minLevel && item.level <= options.maxLevel;
+      table.system === "DND5E" ||
+      (item.level >= options.minLevel && item.level <= options.maxLevel);
     const matchesCategory =
       options.categories.length === 0 ||
       options.categories.includes(item.category);
     const itemValuePc = getValueInCopper(item);
     const matchesValue =
       itemValuePc >= options.minValuePc && itemValuePc <= options.maxValuePc;
-
-    return matchesLevel && matchesCategory && matchesValue;
+    const matchesMagic =
+      table.system !== "PF2E" || options.allowMagic || !item.magic;
+      
+    return matchesLevel && matchesCategory && matchesValue && matchesMagic;
   });
 
   const weightedItems: RolledLootItem[] = filteredBaseItems
     .map((item) => ({
       ...item,
-      effectiveWeight: getEffectiveWeight(
-        item,
-        options.minLevel,
-        options.maxLevel,
-        options.probabilityMode
-      ),
+      effectiveWeight: getEffectiveWeight(item, table, options),
+
       valueInCopper: getValueInCopper(item),
     }))
     .filter((item) => item.effectiveWeight > 0);
@@ -178,6 +210,7 @@ export function rollLootTable(
   return {
     tableId: table.id,
     tableName: table.name,
+    system: table.system,
     options,
     items: results,
     rolledAt: new Date().toISOString(),

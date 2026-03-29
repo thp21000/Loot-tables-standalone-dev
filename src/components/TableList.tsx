@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import TableEditor from "./TableEditor";
 import { buttons, colors, controls, layout, radius, typography } from "../styles/ui";
 import { useI18n } from "../i18n";
-import { tCategory, tRarity, tType } from "../i18n/gameTerms";
+import { tCategory, tCurrency, tRarity, tType } from "../i18n/gameTerms";
 
 type TableListProps = {
   tables: LootTable[];
@@ -28,8 +28,6 @@ type TableListProps = {
   currentSystem: GameSystem;
 };
 
-const VIEW_ITEM_GRID_TEMPLATE_PF2E = "minmax(160px, 220px) 72px 72px 118px 118px 108px";
-const VIEW_ITEM_GRID_TEMPLATE_DND5E = "minmax(160px, 220px) 72px 128px 128px 118px 108px";
 const VIEW_ITEM_MIN_WIDTH = "648px";
 
 const viewItemBlockStyle = {
@@ -46,24 +44,32 @@ const viewItemRowStyle = {
 
 const viewItemNameCellStyle = {
   width: "100%",
-  maxWidth: "220px",
+  maxWidth: "420px",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 } as const;
 
 function getRarityColor(rarity: string): string {
+  if (rarity === "Aucun") return "#9ca3af";
   if (rarity === "Courant") return "#9ca3af";
   if (rarity === "Peu courant") return "#f59e0b";
   if (rarity === "Rare") return "#60a5fa";
+  if (rarity === "Très rare") return "#2c68b1";
+  if (rarity === "Légendaire") return "#00ff00";
+  if (rarity === "Unique") return "#a78bfa";
+  if (rarity === "Artéfact") return "#a78bfa";
   return "#a78bfa";
 }
 
 function getRarityRank(rarity: string): number {
   if (rarity === "Courant") return 1;
+  if (rarity === "Aucun") return 1;
   if (rarity === "Peu courant") return 2;
   if (rarity === "Rare") return 3;
-  return 4;
+  if (rarity === "Très rare") return 4;
+  if (rarity === "Légendaire") return 5;
+  return 6;
 }
 
 function getValueInCopper(
@@ -127,6 +133,14 @@ function sortItems(items: LootTable["items"], mode: ItemSortMode) {
       return b.level - a.level;
     }
 
+    if (mode === "type-asc") {
+      return (a.type || "").localeCompare(b.type || "", "fr");
+    }
+
+    if (mode === "type-desc") {
+      return (b.type || "").localeCompare(a.type || "", "fr");
+    }
+    
     if (mode === "category-asc") {
       return a.category.localeCompare(b.category, "fr");
     }
@@ -182,10 +196,16 @@ export default function TableList({
   currentSystem,
 }: TableListProps) {
   const { t, language: currentLanguage } = useI18n();
-  const viewItemGridTemplate =
-    currentSystem === "DND5E"
-      ? VIEW_ITEM_GRID_TEMPLATE_DND5E
-      : VIEW_ITEM_GRID_TEMPLATE_PF2E;
+  const toAdaptiveWidth = (
+    values: string[],
+    minWidth: number,
+    maxWidth: number,
+    characterWidth = 8
+  ) => {
+    const longest = values.reduce((max, value) => Math.max(max, value.trim().length), 0);
+    const computed = longest * characterWidth + 36;
+    return `${Math.max(minWidth, Math.min(maxWidth, computed))}px`;
+  };
   function toggleExpanded(tableId: string) {
     onExpandedTableIdsChange(
       expandedTableIds.includes(tableId)
@@ -195,7 +215,7 @@ export default function TableList({
   }
 
   function getItemSortMode(tableId: string): ItemSortMode {
-    return itemSortModes[tableId] ?? "level-asc";
+    return itemSortModes[tableId] ?? (currentSystem === "DND5E" ? "type-asc" : "level-asc");
   }
 
   function setItemSortMode(tableId: string, mode: ItemSortMode) {
@@ -272,7 +292,23 @@ export default function TableList({
               table.items,
               getItemSortMode(table.id)
             );
-
+            const nameColumnWidth = toAdaptiveWidth(
+              [t("column.name"), ...sortedItems.map((item) => item.name)],
+              180,
+              420
+            );
+            const categoryColumnWidth = toAdaptiveWidth(
+              [
+                t("column.category"),
+                ...sortedItems.map((item) => tCategory(item.category, currentLanguage)),
+              ],
+              140,
+              280
+            );
+            const viewItemGridTemplate =
+              currentSystem === "DND5E"
+                ? `minmax(${nameColumnWidth}, max-content) 72px minmax(${categoryColumnWidth}, max-content) 128px 118px 108px`
+                : `minmax(${nameColumnWidth}, max-content) 72px 72px minmax(${categoryColumnWidth}, max-content) 86px 118px 118px 108px`;
             return (
               <div
                 key={table.id}
@@ -406,8 +442,17 @@ export default function TableList({
                                     }
                                     style={controls.select}
                                   >
-                                    <option value="level-asc">{t("table.itemSort.levelAsc")}</option>
-                                    <option value="level-desc">{t("table.itemSort.levelDesc")}</option>
+                                    {currentSystem === "PF2E" ? (
+                                      <>
+                                        <option value="level-asc">{t("table.itemSort.levelAsc")}</option>
+                                        <option value="level-desc">{t("table.itemSort.levelDesc")}</option>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <option value="type-asc">{t("table.itemSort.typeAsc")}</option>
+                                        <option value="type-desc">{t("table.itemSort.typeDesc")}</option>
+                                      </>
+                                    )}
                                     <option value="name-asc">{t("table.itemSort.nameAsc")}</option>
                                     <option value="name-desc">{t("table.itemSort.nameDesc")}</option>
                                     <option value="category-asc">{t("table.itemSort.categoryAsc")}</option>
@@ -438,6 +483,7 @@ export default function TableList({
                                 <div>{t("column.sheet")}</div>
                                 {currentSystem === "PF2E" ? <div>{t("column.level")}</div> : null}
                                 <div>{t("column.category")}</div>
+                                {currentSystem === "PF2E" ? <div>{t("column.magic")}</div> : null}
                                 {currentSystem === "DND5E" ? <div>{t("column.type")}</div> : null}
                                 <div>{t("column.rarity")}</div>
                                 <div>{t("column.amount")}</div>
@@ -481,6 +527,7 @@ export default function TableList({
 
                                     {currentSystem === "PF2E" ? <div>{t("common.levelShort")} {item.level}</div> : null}
                                     <div>{tCategory(item.category, currentLanguage)}</div>
+                                    {currentSystem === "PF2E" ? <div>{item.magic ? t("common.yes") : t("common.no")}</div> : null}
                                     {currentSystem === "DND5E" ? (
                                       <div>{tType(item.type || "Aucun", currentLanguage)}</div>
                                     ) : null}
@@ -492,7 +539,9 @@ export default function TableList({
                                     >
                                       {tRarity(item.rarity, currentLanguage)}
                                     </div>
-                                    <div>{item.valueAmount} {item.valueCurrency}</div>
+                                    <div>
+                                      {item.valueAmount} {tCurrency(item.valueCurrency, currentLanguage)}
+                                    </div>
                                   </div>
                                 ))}
                               </div>
