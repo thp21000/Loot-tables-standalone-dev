@@ -43,16 +43,6 @@ function getModeLabel(mode: ProbabilityMode, system: GameSystem, t: (key: string
   return t("roll.mode.rarityOnly");
 }
 
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60) || "loot-result";
-}
-
 function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -62,13 +52,20 @@ function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
+function buildExportFilename(extension: "png" | "pdf"): string {
+  const now = new Date();
+  const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  const timePart = `${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
+  return `Loot-Tables-${datePart}-${timePart}.${extension}`;
+}
+
 function formatResultText(
   result: RollResult,
   t: (key: string, params?: Record<string, string | number>) => string,
   language: "fr" | "en",
   displayOptions: ExportDisplayOptions
 ): string {
-  const header = `${t("gain.discovered")} — ${result.tableName}`;
+  const header = t("gain.discovered");
 
   const items =
     result.items.length === 0
@@ -158,7 +155,7 @@ export default function ResultDialog({
 
       const width = 1200;
       const headerHeight = 170;
-      const rowHeight = 96;
+      const rowHeight = exportOptions.showLink ? 118 : 96;
       const footerHeight = 80;
       const itemCount = Math.max(1, result.items.length);
       const height = Math.max(560, headerHeight + itemCount * rowHeight + footerHeight);
@@ -189,11 +186,11 @@ export default function ResultDialog({
       context.fillStyle = "#3e2a16";
       context.font = "700 56px Georgia, serif";
       context.textAlign = "center";
-      context.fillText(result.tableName, width / 2, 92);
+      context.fillText(t("gain.discovered"), width / 2, 92);
 
       context.font = "italic 28px Georgia, serif";
       context.fillStyle = "#5f4225";
-      context.fillText(t("gain.discovered"), width / 2, 132);
+      context.fillText(t("result.title.gm"), width / 2, 132);
 
       context.textAlign = "left";
 
@@ -208,7 +205,7 @@ export default function ResultDialog({
           context.strokeStyle = "rgba(111, 79, 47, 0.45)";
           context.lineWidth = 2;
           context.beginPath();
-          context.roundRect(54, cardY, width - 108, 78, 14);
+          context.roundRect(54, cardY, width - 108, exportOptions.showLink ? 100 : 78, 14);
           context.fill();
           context.stroke();
 
@@ -218,11 +215,26 @@ export default function ResultDialog({
 
           context.font = "500 23px Georgia, serif";
           context.fillStyle = "#3e2a16";
-          context.fillText(
-            `${t("column.level")} ${item.level} • ${tCategory(item.category, language)} • ${tRarity(item.rarity, language)} • ${item.valueAmount} ${tCurrency(item.valueCurrency, language)}`,
-            80,
-            cardY + 66
-          );
+          const details = [
+            `${t("column.level")} ${item.level}`,
+            tCategory(item.category, language),
+          ];
+
+          if (exportOptions.showRarity) {
+            details.push(tRarity(item.rarity, language));
+          }
+
+          if (exportOptions.showAmount) {
+            details.push(`${item.valueAmount} ${tCurrency(item.valueCurrency, language)}`);
+          }
+
+          context.fillText(details.join(" • "), 80, cardY + 66);
+
+          if (exportOptions.showLink && item.url) {
+            context.font = "500 18px Georgia, serif";
+            context.fillStyle = "#355f9a";
+            context.fillText(item.url, 80, cardY + 88);
+          }
         });
       }
 
@@ -235,7 +247,7 @@ export default function ResultDialog({
         height - 32
       );
 
-      const filename = `${slugify(result.tableName)}-${new Date().toISOString().slice(0, 10)}.png`;
+      cconst filename = buildExportFilename("png");
 
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((nextBlob) => {
@@ -341,7 +353,7 @@ export default function ResultDialog({
     }
 
     try {
-      const filename = `${slugify(result.tableName)}-${new Date().toISOString().slice(0, 10)}.pdf`;
+      const filename = buildExportFilename("pdf");
       const pdfBlob = buildPdfBlob(textToCopy);
       downloadBlob(pdfBlob, filename);
       onShowAlert(t("result.downloadPdfOk"));
@@ -630,7 +642,7 @@ export default function ResultDialog({
               setExportOptions((prev) => ({ ...prev, showAmount: event.target.checked }))
             }
           />
-          <span>{t("column.value")}</span>
+          <span>{t("column.amount")}</span>
         </label>
 
         <label style={{ display: "flex", alignItems: "center", gap: "10px" }}>
