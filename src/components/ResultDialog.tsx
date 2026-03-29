@@ -265,17 +265,29 @@ export default function ResultDialog({
   }
 
   function escapePdfText(value: string): string {
-    return value
+    const normalized = value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^\x20-\x7E]/g, "?");
+
+    return normalized
       .replace(/\\/g, "\\\\")
       .replace(/\(/g, "\\(")
       .replace(/\)/g, "\\)");
   }
 
+  function hexToPdfRgb(hex: string): string {
+    const normalized = hex.replace("#", "");
+    const r = Number.parseInt(normalized.slice(0, 2), 16) / 255;
+    const g = Number.parseInt(normalized.slice(2, 4), 16) / 255;
+    const b = Number.parseInt(normalized.slice(4, 6), 16) / 255;
+    return `${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)}`;
+  }
+
   function buildPdfBlob(data: RollResult, displayOptions: ExportDisplayOptions): Blob {
     const pageWidth = 595;
-    const pageHeight = 842;
     const margin = 48;
-    const rowHeight = displayOptions.showLink ? 58 : 42;
+    const rowHeight = displayOptions.showLink ? 52 : 38;
     const rowsPerPage = 11;
     const chunks: typeof data.items[] = [];
 
@@ -297,20 +309,22 @@ export default function ResultDialog({
     const pageObjectIds: number[] = [];
 
     chunks.forEach((chunk) => {
+      const pageHeight = Math.max(420, Math.min(842, 220 + Math.max(1, chunk.length) * rowHeight + 90));
+      const yStart = pageHeight - 110;
       const commands: string[] = [
         "0.96 0.91 0.80 rg",
-        "0 0 595 842 re f",
+        `0 0 ${pageWidth} ${pageHeight} re f`,
         "0.44 0.31 0.18 RG",
         "6 w",
-        "18 18 559 806 re S",
+        `18 18 ${pageWidth - 36} ${pageHeight - 36} re S`,
         "0.24 0.16 0.09 rg",
-        "BT /F1 28 Tf 200 790 Td (" + escapePdfText(t("gain.discovered")) + ") Tj ET",
+        `BT /F1 28 Tf 180 ${pageHeight - 52} Td (` + escapePdfText(t("gain.discovered")) + ") Tj ET",
       ];
 
       if (chunk.length === 0) {
         commands.push(
           "0.49 0.18 0.07 rg",
-          "BT /F1 16 Tf 80 740 Td (" + escapePdfText(t("result.noItem")) + ") Tj ET"
+          `BT /F1 16 Tf 80 ${pageHeight - 120} Td (` + escapePdfText(t("result.noItem")) + ") Tj ET"
         );
       }
 
@@ -328,8 +342,10 @@ export default function ResultDialog({
           details.push(`${item.valueAmount} ${tCurrency(item.valueCurrency, language)}`);
         }
 
+        const nameColor = displayOptions.showRarity ? hexToPdfRgb(getRarityColor(item.rarity)) : "0.15 0.11 0.06";
+
         commands.push(
-          "0.15 0.11 0.06 rg",
+          `${nameColor} rg`,
           `BT /F1 15 Tf ${margin} ${yTop} Td (${escapePdfText(item.name)}) Tj ET`,
           "0.24 0.16 0.09 rg",
           `BT /F1 11 Tf ${margin} ${yTop - 16} Td (${escapePdfText(details.join(" • "))}) Tj ET`
@@ -341,11 +357,6 @@ export default function ResultDialog({
             `<< /Type /Annot /Subtype /Link /Rect [${margin} ${yTop - 2} ${margin + estimatedNameWidth} ${yTop + 16}] /Border [0 0 0] /A << /S /URI /URI (${escapePdfText(item.url)}) >> >>`
           );
           pageAnnotationIds.push(annotObjectId);
-
-          commands.push(
-            "0.21 0.37 0.60 rg",
-            `BT /F1 10 Tf ${margin} ${yTop - 30} Td (${escapePdfText(item.url)}) Tj ET`
-          );
         }
       });
 
@@ -421,7 +432,7 @@ export default function ResultDialog({
     if (pendingExportAction === "pdf") {
       executePdfDownload();
     }
-    
+
     closeExportOptions();
   }
 
