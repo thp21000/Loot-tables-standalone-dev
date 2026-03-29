@@ -185,11 +185,7 @@ export default function ResultDialog({
     context.fillStyle = "#3e2a16";
     context.font = "700 56px Georgia, serif";
     context.textAlign = "center";
-    context.fillText(t("gain.discovered"), width / 2, 92);
-
-    context.font = "italic 28px Georgia, serif";
-    context.fillStyle = "#5f4225";
-    context.fillText(t("result.title.gm"), width / 2, 132);
+    context.fillText(t("gain.discovered"), width / 2, 108);
 
     context.textAlign = "left";
 
@@ -213,12 +209,11 @@ export default function ResultDialog({
         context.fillText(item.name, 80, cardY + 35);
 
           if (displayOptions.showLink && item.url) {
-          const measured = context.measureText(item.name);
           links.push({
-            x: 80,
-            y: cardY + 8,
-            width: Math.max(70, measured.width),
-            height: 32,
+            x: 66,
+            y: cardY + 4,
+            width: width - 132,
+            height: displayOptions.showLink ? 96 : 72,
             url: item.url,
           });
         }
