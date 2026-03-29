@@ -763,9 +763,8 @@ export default function App() {
     <div
       style={{
         ...layout.page,
-        width: "max-content",
-        minWidth: "100%",
-        maxWidth: "none",
+        width: "100%",
+        maxWidth: "100%",
         minHeight: "100vh",
         padding: "16px 18px 10px",
         boxSizing: "border-box",
@@ -774,8 +773,9 @@ export default function App() {
     >
       <div
         style={{
-          width: "max-content",
-          maxWidth: "none",
+          width: "100%",
+          maxWidth: "1280px",
+          margin: "0 auto",
           paddingBottom: "8px",
           boxSizing: "border-box",
           background: colors.pageBg,
@@ -828,7 +828,7 @@ export default function App() {
             style={{ display: "none" }}
           />
 
-<div style={{ width: "fit-content", maxWidth: "100%" }}>
+<div style={{ width: "100%", maxWidth: "100%" }}>
             <TableList
               key={`table-list-${language}-${currentSystem}`}
               tables={tables}
