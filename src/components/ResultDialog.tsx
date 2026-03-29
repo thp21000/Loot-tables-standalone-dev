@@ -331,7 +331,7 @@ export default function ResultDialog({
       const pageAnnotationIds: number[] = [];
 
       chunk.forEach((item, itemIndex) => {
-        const yTop = 730 - itemIndex * rowHeight;
+        const yTop = yStart - itemIndex * rowHeight;
         const details = [`${t("column.level")} ${item.level}`, tCategory(item.category, language)];
 
         if (displayOptions.showRarity) {
