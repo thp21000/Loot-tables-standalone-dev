@@ -58,6 +58,7 @@ export async function getOwlbearPlayerRole(): Promise<OwlbearPlayerRole> {
 
 export async function getRoomState(): Promise<OwlbearRoomState> {
  return readRoomState();
+}
 
 export async function setRoomState(
   partialState: Partial<OwlbearRoomState>
