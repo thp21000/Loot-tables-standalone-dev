@@ -3,5 +3,5 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/loot-tables-for-OBR/",
+  base: "/Loot-tables-standalone-dev/",
 });

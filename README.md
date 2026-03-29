@@ -55,7 +55,7 @@ Une extension Owlbear Rodeo pour créer, modifier, importer, exporter et lancer 
 
 Ajouter cette URL comme extension :
 
-`https://thp21000.github.io/loot-tables-for-OBR/manifest.json`
+`https://thp21000.github.io/Loot-tables-standalone-dev/`
 
 ### Sauvegarde recommandée
 
