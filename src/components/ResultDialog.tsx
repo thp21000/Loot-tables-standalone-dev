@@ -3,6 +3,7 @@ import type { GameSystem, OwlbearPlayerRole, ProbabilityMode, RollResult } from 
 import { buttons, colors, layout, radius, typography } from "../styles/ui";
 import { useI18n } from "../i18n";
 import { tCategory, tCurrency, tRarity } from "../i18n/gameTerms";
+import Modal from "./Modal";
 
 type ResultDialogProps = {
   isOpen: boolean;
@@ -13,6 +14,12 @@ type ResultDialogProps = {
   onValidate: () => void;
   onShowAlert: (message: string) => void;
   playerRole: OwlbearPlayerRole;
+};
+
+type ExportDisplayOptions = {
+  showRarity: boolean;
+  showAmount: boolean;
+  showLink: boolean;
 };
 
 function getRarityColor(rarity: string): string {
@@ -58,39 +65,38 @@ function downloadBlob(blob: Blob, filename: string): void {
 function formatResultText(
   result: RollResult,
   t: (key: string, params?: Record<string, string | number>) => string,
-  language: "fr" | "en"
+  language: "fr" | "en",
+  displayOptions: ExportDisplayOptions
 ): string {
-  const header = `${t("result.title.gm")} — ${result.tableName}`;
-  const options = `${t("result.optionsSummary", {
-    minLevel: result.options.minLevel,
-    maxLevel: result.options.maxLevel,
-    minQuantity: result.options.minQuantity,
-    maxQuantity: result.options.maxQuantity,
-    minValuePc: result.options.minValuePc,
-    maxValuePc: result.options.maxValuePc,
-    allowDuplicates: result.options.allowDuplicates
-      ? t("result.allowDuplicates.yes")
-      : t("result.allowDuplicates.no"),
-    allowMagic: result.options.allowMagic ? t("common.yes") : t("common.no"),
-  })} | ${t("result.modeSummary", {
-    mode: getModeLabel(result.options.probabilityMode, result.system, (key) => t(key)),
-  })}`;
-  const categories =
-    result.options.categories.length > 0
-    ? `${t("roll.categories")} : ${result.options.categories
-      .map((category) => tCategory(category, language))
-      .join(", ")}`
-  : `${t("roll.categories")} : *`;
+  const header = `${t("gain.discovered")} — ${result.tableName}`;
 
   const items =
     result.items.length === 0
     ? [t("result.noItem")]
       : result.items.map(
-        (item, index) =>
-         `${index + 1}. ${item.name} — ${t("result.level", { level: item.level })} — ${tCategory(item.category, language)} — ${tRarity(item.rarity, language)} — ${item.valueAmount} ${tCurrency(item.valueCurrency, language)}${item.url ? ` — ${item.url}` : ""}`
+        (item, index) => {
+          const details = [
+            t("result.level", { level: item.level }),
+            tCategory(item.category, language),
+          ];
+
+          if (displayOptions.showRarity) {
+            details.push(tRarity(item.rarity, language));
+          }
+
+          if (displayOptions.showAmount) {
+            details.push(`${item.valueAmount} ${tCurrency(item.valueCurrency, language)}`);
+          }
+
+          if (displayOptions.showLink && item.url) {
+            details.push(item.url);
+          }
+
+          return `${index + 1}. ${item.name} — ${details.join(" — ")}`;
+        }
       );
 
-  return [header, options, categories, "", ...items].join("\n");
+  return [header, "", ...items].join("\n");
 }
 
 export default function ResultDialog({
@@ -105,13 +111,27 @@ export default function ResultDialog({
 }: ResultDialogProps) {
   const { t, language } = useI18n();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [pendingExportAction, setPendingExportAction] = useState<"copy" | "image" | null>(null);
+  const [exportOptions, setExportOptions] = useState<ExportDisplayOptions>({
+    showRarity: true,
+    showAmount: true,
+    showLink: false,
+  });
 
   const textToCopy = useMemo(() => {
     if (!result) return "";
-    return formatResultText(result, t, language);
-  }, [result, t, language]);
+    return formatResultText(result, t, language, exportOptions);
+  }, [result, t, language, exportOptions]);
 
-  async function handleCopy() {
+  function openExportOptions(action: "copy" | "image") {
+    setPendingExportAction(action);
+  }
+
+  function closeExportOptions() {
+    setPendingExportAction(null);
+  }
+
+  async function executeCopy() {
     if (!textToCopy) return;
 
     try {
@@ -123,7 +143,7 @@ export default function ResultDialog({
     }
   }
 
-  async function handleDownloadImage() {
+  async function executeImageDownload() {
     if (!result || !textToCopy) {
       return;
     }
@@ -173,7 +193,7 @@ export default function ResultDialog({
 
       context.font = "italic 28px Georgia, serif";
       context.fillStyle = "#5f4225";
-      context.fillText(t("result.title.gm"), width / 2, 132);
+      context.fillText(t("gain.discovered"), width / 2, 132);
 
       context.textAlign = "left";
 
@@ -331,11 +351,24 @@ export default function ResultDialog({
     }
   }
 
+  async function handleConfirmExportOptions() {
+    if (pendingExportAction === "copy") {
+      await executeCopy();
+    }
+
+    if (pendingExportAction === "image") {
+      await executeImageDownload();
+    }
+
+    closeExportOptions();
+  }
+
   if (!isOpen || !result) {
     return null;
   }
 
   return (
+    <>
     <div
       style={{
         position: "fixed",
@@ -484,10 +517,10 @@ export default function ResultDialog({
             </>
           ) : null}
 
-          <button onClick={handleCopy} style={buttons.secondary}>
+          <button onClick={() => openExportOptions("copy")} style={buttons.secondary}>
           {t("result.copy")}
           </button>
-          <button onClick={handleDownloadImage} style={buttons.secondary}>
+          <button onClick={() => openExportOptions("image")} style={buttons.secondary}>
           {t("result.downloadImage")}
           </button>
           <button onClick={handleDownloadPdf} style={buttons.secondary}>
@@ -558,5 +591,60 @@ export default function ResultDialog({
         </div>
       </div>
     </div>
+    <Modal
+      isOpen={pendingExportAction !== null}
+      title={t("result.exportOptions.title")}
+      onClose={closeExportOptions}
+      footer={(
+        <>
+          <button type="button" onClick={closeExportOptions} style={buttons.secondary}>
+            {t("common.cancel")}
+          </button>
+          <button type="button" onClick={() => void handleConfirmExportOptions()} style={buttons.primary}>
+            {t("result.exportOptions.confirm")}
+          </button>
+        </>
+      )}
+    >
+      <div style={{ display: "grid", gap: "12px", color: colors.text }}>
+        <p style={{ margin: 0, color: colors.textSoft }}>
+          {t("result.exportOptions.description")}
+        </p>
+
+        <label style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <input
+            type="checkbox"
+            checked={exportOptions.showRarity}
+            onChange={(event) =>
+              setExportOptions((prev) => ({ ...prev, showRarity: event.target.checked }))
+            }
+          />
+          <span>{t("column.rarity")}</span>
+        </label>
+
+        <label style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <input
+            type="checkbox"
+            checked={exportOptions.showAmount}
+            onChange={(event) =>
+              setExportOptions((prev) => ({ ...prev, showAmount: event.target.checked }))
+            }
+          />
+          <span>{t("column.value")}</span>
+        </label>
+
+        <label style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <input
+            type="checkbox"
+            checked={exportOptions.showLink}
+            onChange={(event) =>
+              setExportOptions((prev) => ({ ...prev, showLink: event.target.checked }))
+            }
+          />
+          <span>{t("column.sheet")}</span>
+        </label>
+      </div>
+    </Modal>
+    </>
   );
 }
