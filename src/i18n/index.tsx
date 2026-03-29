@@ -17,7 +17,7 @@ const dictionaries: Record<Language, Dictionary> = {
   en,
 };
 
-const STORAGE_KEY = "owlbear-loot-language";
+const STORAGE_KEY = "loot-tables-standalone-language";
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 

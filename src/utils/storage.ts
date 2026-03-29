@@ -11,8 +11,8 @@ import type {
   UIState,
 } from "../types";
 
-const STORAGE_KEY_PREFIX = "owlbear-loot-tables";
-const UI_STATE_KEY = "owlbear-loot-tables-ui-state";
+const STORAGE_KEY_PREFIX = "loot-tables-standalone";
+const UI_STATE_KEY = "loot-tables-standalone-ui-state";
 
 function getStorageKey(system: GameSystem): string {
   return `${STORAGE_KEY_PREFIX}-${system.toLowerCase()}`;

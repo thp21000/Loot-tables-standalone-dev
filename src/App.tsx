@@ -6,7 +6,6 @@ import type {
   GameSystem,
   LootItem,
   LootTable,
-  OwlbearContextState,
   OwlbearPlayerRole,
   OwlbearRoomState,
   RollOptions,
@@ -41,14 +40,12 @@ import flagGb from "./assets/flag-gb.svg";
 import {
   getOwlbearPlayerName,
   getOwlbearPlayerRole,
-  getOwlbearRoomId,
   getRoomState,
   notifyInfo,
   notifySuccess,
   openValidatedRollModal,
   publishValidatedRoll,
   setRoomState,
-  setOwlbearPopoverWidth,
   subscribeToRoomState,
   subscribeToValidatedRolls,
 } from "./owlbear";
@@ -201,15 +198,10 @@ export default function App() {
     initialUIState.itemSortModes
   );
 
-  const [owlbearContext, setOwlbearContext] = useState<OwlbearContextState>({
-    isOwlbearReady: false,
-    roomId: null,
-  });
   const [playerRole, setPlayerRole] = useState<OwlbearPlayerRole>("UNKNOWN");
   const [roomState, setLocalRoomState] = useState<OwlbearRoomState>({});
 
   const transferFileInputRef = useRef<HTMLInputElement | null>(null);
-  const contentRef = useRef<HTMLDivElement | null>(null);
   const lastSystemForSaveRef = useRef<GameSystem>(initialUIState.currentSystem);
 
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -284,14 +276,9 @@ export default function App() {
     let unsubscribeBroadcast: (() => void) | null = null;
 
     async function initOwlbearContext() {
-      const roomId = await getOwlbearRoomId();
       const role = await getOwlbearPlayerRole();
       const currentRoomState = await getRoomState();
 
-      setOwlbearContext({
-        isOwlbearReady: true,
-        roomId,
-      });
       setPlayerRole(role);
       setLocalRoomState(currentRoomState);
 
@@ -322,49 +309,6 @@ export default function App() {
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (!owlbearContext.isOwlbearReady) {
-      return;
-    }
-
-    const contentElement = contentRef.current;
-
-    if (!contentElement) {
-      return;
-    }
-
-    let animationFrameId = 0;
-
-    const syncPopoverWidth = () => {
-      cancelAnimationFrame(animationFrameId);
-
-      animationFrameId = window.requestAnimationFrame(() => {
-        const popoverHorizontalPadding = 56;
-        const measuredWidth = Math.ceil(contentElement.scrollWidth + popoverHorizontalPadding);
-        const nextWidth = Math.max(640, Math.min(1400, measuredWidth));
-        void setOwlbearPopoverWidth(nextWidth);
-      });
-    };
-
-    syncPopoverWidth();
-
-    const resizeObserver =
-      typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(() => {
-            syncPopoverWidth();
-          })
-        : null;
-
-    resizeObserver?.observe(contentElement);
-    window.addEventListener("resize", syncPopoverWidth);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      resizeObserver?.disconnect();
-      window.removeEventListener("resize", syncPopoverWidth);
-    };
-  }, [owlbearContext.isOwlbearReady, tables, editingTableId, expandedTableIds, playerRole]);
 
   function handleCreateTable() {
     const now = new Date().toISOString();
@@ -829,7 +773,6 @@ export default function App() {
       }}
     >
       <div
-        ref={contentRef}
         style={{
           width: "max-content",
           maxWidth: "none",
@@ -933,18 +876,7 @@ export default function App() {
                 }}
               >
                 <span>Mode : {getRoleLabel(playerRole, t)}</span>
-                <span>
-                  {t("app.owlbear.status", {
-                    status: owlbearContext.isOwlbearReady
-                      ? t("app.owlbear.connected")
-                      : t("app.owlbear.initializing"),
-                  })}
-                </span>
-                {owlbearContext.roomId ? (
-                  <span style={{ overflowWrap: "anywhere" }}>
-                    Room : {owlbearContext.roomId}
-                  </span>
-                ) : null}
+                <span>{t("app.mode.standalone")}</span>
               </div>
 
               <div

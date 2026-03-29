@@ -1,7 +1,7 @@
 {
-  "name": "owlbear-loot-tables",
+  "name": "loot-tables-standalone",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@owlbear-rodeo/sdk": "^3.1.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
