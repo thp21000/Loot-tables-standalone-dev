@@ -62,6 +62,38 @@ Ajouter cette URL comme extension :
 Les tables de loot sont actuellement stockées localement dans le navigateur.  
 Il est fortement recommandé de faire des exports JSON réguliers pour éviter toute perte de données.
 
+### Tables d’exemple (samples)
+
+Des tables d’exemple prêtes à l’emploi sont disponibles pour tester rapidement l’outil sans créer de contenu.
+
+👉 Accès ici :
+https://www.patreon.com/posts/loot-tables-beta-154219405?utm_medium=clipboard_copy&utm_source=copyLink&utm_campaign=postshare_creator&utm_content=join_link
+
+Contenu inclus :
+- PF2E FR
+- PF2E EN
+- DnD5e FR
+- DnD5e EN
+
+Ces tables peuvent être importées directement dans l’outil.
+
+---
+
+### Soutenir le projet
+
+Si vous souhaitez soutenir le développement du projet :
+
+👉 https://www.patreon.com/15711449/join
+
+Le palier **GM Supporter** donne accès à :
+
+- accès anticipé aux versions bêta
+- tables complètes prêtes à jouer (FR / EN, PF2E & DnD5e)
+- contenu ajouté progressivement
+- possibilité d’influencer les prochaines fonctionnalités
+
+Le support permet d’accélérer le développement et d’ajouter davantage de contenu.
+
 ### Utilisation
 
 #### Choisir le système
@@ -310,6 +342,38 @@ Add this URL as an extension:
 
 Loot tables are currently stored locally in your browser.  
 It is strongly recommended to export JSON backups regularly to avoid data loss.
+
+### Sample tables
+
+Ready-to-use sample tables are available to quickly test the tool without creating content yourself.
+
+👉 Access here:
+https://www.patreon.com/posts/loot-tables-beta-154219405?utm_medium=clipboard_copy&utm_source=copyLink&utm_campaign=postshare_creator&utm_content=join_link
+
+Included:
+- PF2E FR
+- PF2E EN
+- DnD5e FR
+- DnD5e EN
+
+These tables can be imported directly into the tool.
+
+---
+
+### Support the project
+
+If you want to support the project:
+
+👉 https://www.patreon.com/15711449/join
+
+The **GM Supporter** tier gives access to:
+
+- early access to beta versions
+- ready-to-use loot tables (FR / EN, PF2E & DnD5e)
+- progressively added content
+- ability to influence future features
+
+Your support helps accelerate development and expand the available content.
 
 ### Usage
 
