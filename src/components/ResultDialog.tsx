@@ -129,7 +129,6 @@ export default function ResultDialog({
     }
 
     try {
-      const lines = textToCopy.split("\n");
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
 
@@ -137,24 +136,84 @@ export default function ResultDialog({
         throw new Error("Canvas non disponible");
       }
 
-      const font = "18px Inter, Arial, sans-serif";
-      context.font = font;
+      const width = 1200;
+      const headerHeight = 170;
+      const rowHeight = 96;
+      const footerHeight = 80;
+      const itemCount = Math.max(1, result.items.length);
+      const height = Math.max(560, headerHeight + itemCount * rowHeight + footerHeight);
 
-      const maxLineWidth = lines.reduce((acc, line) => Math.max(acc, context.measureText(line).width), 0);
-      const padding = 36;
-      const lineHeight = 28;
+      canvas.width = width;
+      canvas.height = height;
 
-      canvas.width = Math.ceil(Math.max(760, maxLineWidth + padding * 2));
-      canvas.height = Math.ceil(Math.max(420, lines.length * lineHeight + padding * 2));
+      const parchmentGradient = context.createLinearGradient(0, 0, width, height);
+      parchmentGradient.addColorStop(0, "#f4e7cb");
+      parchmentGradient.addColorStop(0.45, "#ead7b0");
+      parchmentGradient.addColorStop(1, "#dcc394");
 
-      context.fillStyle = "#0b0f17";
+      context.fillStyle = parchmentGradient;
       context.fillRect(0, 0, canvas.width, canvas.height);
-      context.font = font;
-      context.fillStyle = "#f3f4f6";
 
-      lines.forEach((line, index) => {
-        context.fillText(line || " ", padding, padding + (index + 1) * lineHeight);
-      });
+      for (let i = 0; i < 2800; i += 1) {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        const alpha = 0.02 + Math.random() * 0.04;
+        context.fillStyle = `rgba(86, 63, 39, ${alpha})`;
+        context.fillRect(x, y, 2, 2);
+      }
+
+      context.strokeStyle = "#6f4f2f";
+      context.lineWidth = 10;
+      context.strokeRect(16, 16, width - 32, height - 32);
+
+      context.fillStyle = "#3e2a16";
+      context.font = "700 56px Georgia, serif";
+      context.textAlign = "center";
+      context.fillText(result.tableName, width / 2, 92);
+
+      context.font = "italic 28px Georgia, serif";
+      context.fillStyle = "#5f4225";
+      context.fillText(t("result.title.gm"), width / 2, 132);
+
+      context.textAlign = "left";
+
+      if (result.items.length === 0) {
+        context.font = "600 34px Georgia, serif";
+        context.fillStyle = "#7c2d12";
+        context.fillText(t("result.noItem"), 88, headerHeight + 80);
+      } else {
+        result.items.forEach((item, index) => {
+          const cardY = headerHeight + index * rowHeight;
+          context.fillStyle = "rgba(255, 248, 230, 0.58)";
+          context.strokeStyle = "rgba(111, 79, 47, 0.45)";
+          context.lineWidth = 2;
+          context.beginPath();
+          context.roundRect(54, cardY, width - 108, 78, 14);
+          context.fill();
+          context.stroke();
+
+          context.font = "700 34px Georgia, serif";
+          context.fillStyle = getRarityColor(item.rarity);
+          context.fillText(item.name, 80, cardY + 35);
+
+          context.font = "500 23px Georgia, serif";
+          context.fillStyle = "#3e2a16";
+          context.fillText(
+            `${t("column.level")} ${item.level} • ${tCategory(item.category, language)} • ${tRarity(item.rarity, language)} • ${item.valueAmount} ${tCurrency(item.valueCurrency, language)}`,
+            80,
+            cardY + 66
+          );
+        });
+      }
+
+      context.font = "500 20px Georgia, serif";
+      context.fillStyle = "#6f4f2f";
+      context.textAlign = "right";
+      context.fillText(
+        `${new Date(result.rolledAt).toLocaleString(language === "fr" ? "fr-FR" : "en-US")}`,
+        width - 56,
+        height - 32
+      );
 
       const filename = `${slugify(result.tableName)}-${new Date().toISOString().slice(0, 10)}.png`;
 
