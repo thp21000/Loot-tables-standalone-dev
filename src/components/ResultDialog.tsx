@@ -36,6 +36,25 @@ function getModeLabel(mode: ProbabilityMode, system: GameSystem, t: (key: string
   return t("roll.mode.rarityOnly");
 }
 
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60) || "loot-result";
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function formatResultText(
   result: RollResult,
   t: (key: string, params?: Record<string, string | number>) => string,
@@ -101,6 +120,155 @@ export default function ResultDialog({
     } catch (error) {
       console.error(error);
       onShowAlert(t("result.copyError"));
+    }
+  }
+
+  async function handleDownloadImage() {
+    if (!result || !textToCopy) {
+      return;
+    }
+
+    try {
+      const lines = textToCopy.split("\n");
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        throw new Error("Canvas non disponible");
+      }
+
+      const font = "18px Inter, Arial, sans-serif";
+      context.font = font;
+
+      const maxLineWidth = lines.reduce((acc, line) => Math.max(acc, context.measureText(line).width), 0);
+      const padding = 36;
+      const lineHeight = 28;
+
+      canvas.width = Math.ceil(Math.max(760, maxLineWidth + padding * 2));
+      canvas.height = Math.ceil(Math.max(420, lines.length * lineHeight + padding * 2));
+
+      context.fillStyle = "#0b0f17";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.font = font;
+      context.fillStyle = "#f3f4f6";
+
+      lines.forEach((line, index) => {
+        context.fillText(line || " ", padding, padding + (index + 1) * lineHeight);
+      });
+
+      const filename = `${slugify(result.tableName)}-${new Date().toISOString().slice(0, 10)}.png`;
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((nextBlob) => {
+          if (!nextBlob) {
+            reject(new Error("Image invalide"));
+            return;
+          }
+
+          resolve(nextBlob);
+        }, "image/png");
+      });
+
+      downloadBlob(blob, filename);
+      onShowAlert(t("result.downloadImageOk"));
+    } catch (error) {
+      console.error(error);
+      onShowAlert(t("result.downloadImageError"));
+    }
+  }
+
+  function escapePdfText(value: string): string {
+    return value
+      .replace(/\\/g, "\\\\")
+      .replace(/\(/g, "\\(")
+      .replace(/\)/g, "\\)");
+  }
+
+  function buildPdfBlob(text: string): Blob {
+    const lines = text.split("\n");
+    const linesPerPage = 42;
+    const pageChunks: string[][] = [];
+
+    for (let index = 0; index < lines.length; index += linesPerPage) {
+      pageChunks.push(lines.slice(index, index + linesPerPage));
+    }
+
+    const objects: string[] = [];
+
+    const addObject = (content: string): number => {
+      objects.push(content);
+      return objects.length;
+    };
+
+    const fontObjectId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+
+    const pageObjectIds: number[] = [];
+
+    pageChunks.forEach((chunk) => {
+      const body = [
+        "BT",
+        "/F1 11 Tf",
+        "48 792 Td",
+        "14 TL",
+        ...chunk.map((line) => `(${escapePdfText(line || " ")}) Tj T*`),
+        "ET",
+      ].join("\n");
+
+      const contentObjectId = addObject(
+        `<< /Length ${body.length} >>\nstream\n${body}\nendstream`
+      );
+
+      const pageObjectId = addObject(
+        `<< /Type /Page /Parent {{PAGES_ID}} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontObjectId} 0 R >> >> /Contents ${contentObjectId} 0 R >>`
+      );
+
+      pageObjectIds.push(pageObjectId);
+    });
+
+    const pagesObjectId = addObject(
+      `<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageObjectIds.length} >>`
+    );
+
+    const catalogObjectId = addObject(`<< /Type /Catalog /Pages ${pagesObjectId} 0 R >>`);
+
+    const normalizedObjects = objects.map((object) =>
+      object.replace(/\{\{PAGES_ID\}\}/g, String(pagesObjectId))
+    );
+
+    let pdf = "%PDF-1.4\n";
+    const offsets: number[] = [0];
+
+    normalizedObjects.forEach((object, index) => {
+      offsets.push(pdf.length);
+      pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+    });
+
+    const xrefOffset = pdf.length;
+
+    pdf += `xref\n0 ${normalizedObjects.length + 1}\n`;
+    pdf += "0000000000 65535 f \n";
+    offsets.slice(1).forEach((offset) => {
+      pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+    });
+
+    pdf += `trailer\n<< /Size ${normalizedObjects.length + 1} /Root ${catalogObjectId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+
+    return new Blob([pdf], { type: "application/pdf" });
+  }
+
+  function handleDownloadPdf() {
+    if (!result || !textToCopy) {
+      return;
+    }
+
+    try {
+      const filename = `${slugify(result.tableName)}-${new Date().toISOString().slice(0, 10)}.pdf`;
+      const pdfBlob = buildPdfBlob(textToCopy);
+      downloadBlob(pdfBlob, filename);
+      onShowAlert(t("result.downloadPdfOk"));
+    } catch (error) {
+      console.error(error);
+      onShowAlert(t("result.downloadPdfError"));
     }
   }
 
@@ -259,6 +427,12 @@ export default function ResultDialog({
 
           <button onClick={handleCopy} style={buttons.secondary}>
           {t("result.copy")}
+          </button>
+          <button onClick={handleDownloadImage} style={buttons.secondary}>
+          {t("result.downloadImage")}
+          </button>
+          <button onClick={handleDownloadPdf} style={buttons.secondary}>
+          {t("result.downloadPdf")}
           </button>
           <button onClick={onClose} style={buttons.secondary}>
           {t("common.close")}
