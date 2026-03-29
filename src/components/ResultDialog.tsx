@@ -140,109 +140,124 @@ export default function ResultDialog({
     }
   }
 
+  function renderExportCanvas(data: RollResult, displayOptions: ExportDisplayOptions): {
+    canvas: HTMLCanvasElement;
+    links: Array<{ x: number; y: number; width: number; height: number; url: string }>;
+  } {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("Canvas non disponible");
+    }
+
+    const width = 1200;
+    const headerHeight = 170;
+    const rowHeight = displayOptions.showLink ? 118 : 96;
+    const footerHeight = 80;
+    const itemCount = Math.max(1, data.items.length);
+    const height = Math.max(560, headerHeight + itemCount * rowHeight + footerHeight);
+    const links: Array<{ x: number; y: number; width: number; height: number; url: string }> = [];
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const parchmentGradient = context.createLinearGradient(0, 0, width, height);
+    parchmentGradient.addColorStop(0, "#f4e7cb");
+    parchmentGradient.addColorStop(0.45, "#ead7b0");
+    parchmentGradient.addColorStop(1, "#dcc394");
+
+    context.fillStyle = parchmentGradient;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = 0; i < 2800; i += 1) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const alpha = 0.02 + Math.random() * 0.04;
+      context.fillStyle = `rgba(86, 63, 39, ${alpha})`;
+      context.fillRect(x, y, 2, 2);
+    }
+
+          context.strokeStyle = "#6f4f2f";
+    context.lineWidth = 10;
+    context.strokeRect(16, 16, width - 32, height - 32);
+
+    context.fillStyle = "#3e2a16";
+    context.font = "700 56px Georgia, serif";
+    context.textAlign = "center";
+    context.fillText(t("gain.discovered"), width / 2, 92);
+
+    context.font = "italic 28px Georgia, serif";
+    context.fillStyle = "#5f4225";
+    context.fillText(t("result.title.gm"), width / 2, 132);
+
+    context.textAlign = "left";
+
+    if (data.items.length === 0) {
+      context.font = "600 34px Georgia, serif";
+      context.fillStyle = "#7c2d12";
+      context.fillText(t("result.noItem"), 88, headerHeight + 80);
+    } else {
+      data.items.forEach((item, index) => {
+        const cardY = headerHeight + index * rowHeight;
+        context.fillStyle = "rgba(255, 248, 230, 0.58)";
+        context.strokeStyle = "rgba(111, 79, 47, 0.45)";
+        context.lineWidth = 2;
+        context.beginPath();
+        context.roundRect(54, cardY, width - 108, displayOptions.showLink ? 100 : 78, 14);
+        context.fill();
+        context.stroke();
+
+        context.font = "700 34px Georgia, serif";
+        context.fillStyle = displayOptions.showRarity ? getRarityColor(item.rarity) : "#3e2a16";
+        context.fillText(item.name, 80, cardY + 35);
+
+          if (displayOptions.showLink && item.url) {
+          const measured = context.measureText(item.name);
+          links.push({
+            x: 80,
+            y: cardY + 8,
+            width: Math.max(70, measured.width),
+            height: 32,
+            url: item.url,
+          });
+        }
+
+          context.font = "500 23px Georgia, serif";
+        context.fillStyle = "#3e2a16";
+        const details = [`${t("column.level")} ${item.level}`, tCategory(item.category, language)];
+
+          if (displayOptions.showRarity) {
+          details.push(tRarity(item.rarity, language));
+        }
+
+      if (displayOptions.showAmount) {
+          details.push(`${item.valueAmount} ${tCurrency(item.valueCurrency, language)}`);
+        }
+
+        context.fillText(details.join(" • "), 80, cardY + 66);
+      });
+    }
+
+    context.font = "500 20px Georgia, serif";
+    context.fillStyle = "#6f4f2f";
+    context.textAlign = "right";
+    context.fillText(
+      `${new Date(data.rolledAt).toLocaleString(language === "fr" ? "fr-FR" : "en-US")}`,
+      width - 56,
+      height - 32
+    );
+
+    return { canvas, links };
+  }
+
   async function executeImageDownload() {
-    if (!result || !textToCopy) {
+    if (!result) {
       return;
     }
 
     try {
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
-
-      if (!context) {
-        throw new Error("Canvas non disponible");
-      }
-
-      const width = 1200;
-      const headerHeight = 170;
-      const rowHeight = exportOptions.showLink ? 118 : 96;
-      const footerHeight = 80;
-      const itemCount = Math.max(1, result.items.length);
-      const height = Math.max(560, headerHeight + itemCount * rowHeight + footerHeight);
-
-      canvas.width = width;
-      canvas.height = height;
-
-      const parchmentGradient = context.createLinearGradient(0, 0, width, height);
-      parchmentGradient.addColorStop(0, "#f4e7cb");
-      parchmentGradient.addColorStop(0.45, "#ead7b0");
-      parchmentGradient.addColorStop(1, "#dcc394");
-
-      context.fillStyle = parchmentGradient;
-      context.fillRect(0, 0, canvas.width, canvas.height);
-
-      for (let i = 0; i < 2800; i += 1) {
-        const x = Math.random() * width;
-        const y = Math.random() * height;
-        const alpha = 0.02 + Math.random() * 0.04;
-        context.fillStyle = `rgba(86, 63, 39, ${alpha})`;
-        context.fillRect(x, y, 2, 2);
-      }
-
-      context.strokeStyle = "#6f4f2f";
-      context.lineWidth = 10;
-      context.strokeRect(16, 16, width - 32, height - 32);
-
-      context.fillStyle = "#3e2a16";
-      context.font = "700 56px Georgia, serif";
-      context.textAlign = "center";
-      context.fillText(t("gain.discovered"), width / 2, 92);
-
-      context.textAlign = "left";
-
-      if (result.items.length === 0) {
-        context.font = "600 34px Georgia, serif";
-        context.fillStyle = "#7c2d12";
-        context.fillText(t("result.noItem"), 88, headerHeight + 80);
-      } else {
-        result.items.forEach((item, index) => {
-          const cardY = headerHeight + index * rowHeight;
-          context.fillStyle = "rgba(255, 248, 230, 0.58)";
-          context.strokeStyle = "rgba(111, 79, 47, 0.45)";
-          context.lineWidth = 2;
-          context.beginPath();
-          context.roundRect(54, cardY, width - 108, exportOptions.showLink ? 100 : 78, 14);
-          context.fill();
-          context.stroke();
-
-          context.font = "700 34px Georgia, serif";
-          context.fillStyle = exportOptions.showRarity ? getRarityColor(item.rarity) : "#3e2a16";
-          context.fillText(item.name, 80, cardY + 35);
-
-          context.font = "500 23px Georgia, serif";
-          context.fillStyle = "#3e2a16";
-          const details = [
-            `${t("column.level")} ${item.level}`,
-            tCategory(item.category, language),
-          ];
-
-          if (exportOptions.showRarity) {
-            details.push(tRarity(item.rarity, language));
-          }
-
-          if (exportOptions.showAmount) {
-            details.push(`${item.valueAmount} ${tCurrency(item.valueCurrency, language)}`);
-          }
-
-          context.fillText(details.join(" • "), 80, cardY + 66);
-
-          if (exportOptions.showLink && item.url) {
-            context.font = "500 18px Georgia, serif";
-            context.fillStyle = "#355f9a";
-            context.fillText(item.url, 80, cardY + 88);
-          }
-        });
-      }
-
-      context.font = "500 20px Georgia, serif";
-      context.fillStyle = "#6f4f2f";
-      context.textAlign = "right";
-      context.fillText(
-        `${new Date(result.rolledAt).toLocaleString(language === "fr" ? "fr-FR" : "en-US")}`,
-        width - 56,
-        height - 32
-      );
-
+      const { canvas } = renderExportCanvas(result, exportOptions);
       const filename = buildExportFilename("png");
 
       const blob = await new Promise<Blob>((resolve, reject) => {
@@ -251,7 +266,6 @@ export default function ResultDialog({
             reject(new Error("Image invalide"));
             return;
           }
-
           resolve(nextBlob);
         }, "image/png");
       });
@@ -264,144 +278,93 @@ export default function ResultDialog({
     }
   }
 
-  function escapePdfText(value: string): string {
-    const normalized = value
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^\x20-\x7E]/g, "?");
-
-    return normalized
+  function escapePdfValue(value: string): string {
+    return value
       .replace(/\\/g, "\\\\")
       .replace(/\(/g, "\\(")
       .replace(/\)/g, "\\)");
   }
 
-  function hexToPdfRgb(hex: string): string {
-    const normalized = hex.replace("#", "");
-    const r = Number.parseInt(normalized.slice(0, 2), 16) / 255;
-    const g = Number.parseInt(normalized.slice(2, 4), 16) / 255;
-    const b = Number.parseInt(normalized.slice(4, 6), 16) / 255;
-    return `${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)}`;
-  }
-
-  function buildPdfBlob(data: RollResult, displayOptions: ExportDisplayOptions): Blob {
-    const pageWidth = 595;
-    const margin = 48;
-    const rowHeight = displayOptions.showLink ? 52 : 38;
-    const rowsPerPage = 11;
-    const chunks: typeof data.items[] = [];
-
-    for (let index = 0; index < data.items.length; index += rowsPerPage) {
-      chunks.push(data.items.slice(index, index + rowsPerPage));
+  function buildPdfFromCanvas(
+    canvas: HTMLCanvasElement,
+    links: Array<{ x: number; y: number; width: number; height: number; url: string }>
+  ): Blob {
+    const imageData = canvas.toDataURL("image/jpeg", 0.95);
+    const base64 = imageData.split(",")[1] ?? "";
+    const binaryString = atob(base64);
+    const imageBytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i += 1) {
+      imageBytes[i] = binaryString.charCodeAt(i);
     }
 
-    if (chunks.length === 0) {
-      chunks.push([]);
-    }
-
-    const objects: string[] = [];
-    const addObject = (content: string): number => {
-      objects.push(content);
-      return objects.length;
+    const encoder = new TextEncoder();
+    const chunks: Uint8Array[] = [];
+    let length = 0;
+    const pushBytes = (bytes: Uint8Array) => {
+      chunks.push(bytes);
+      length += bytes.length;
+    };
+    const pushText = (text: string) => {
+      pushBytes(encoder.encode(text));
     };
 
-    const fontObjectId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
-    const pageObjectIds: number[] = [];
+    const pageWidth = canvas.width;
+    const pageHeight = canvas.height;
+    const annotationCount = links.length;
+    const imageObjectId = 5;
+    const firstAnnotId = 6;
+    const totalObjects = 5 + annotationCount;
+    const annotsPart =
+      annotationCount > 0
+        ? `/Annots [${links.map((_, index) => `${firstAnnotId + index} 0 R`).join(" ")}]`
+        : "";
 
-    chunks.forEach((chunk) => {
-      const pageHeight = Math.max(420, Math.min(842, 220 + Math.max(1, chunk.length) * rowHeight + 90));
-      const yStart = pageHeight - 110;
-      const commands: string[] = [
-        "0.96 0.91 0.80 rg",
-        `0 0 ${pageWidth} ${pageHeight} re f`,
-        "0.44 0.31 0.18 RG",
-        "6 w",
-        `18 18 ${pageWidth - 36} ${pageHeight - 36} re S`,
-        "0.24 0.16 0.09 rg",
-        `BT /F1 28 Tf 180 ${pageHeight - 52} Td (` + escapePdfText(t("gain.discovered")) + ") Tj ET",
-      ];
+      const offsets: number[] = [0];
+    pushText("%PDF-1.4\n");
 
-      if (chunk.length === 0) {
-        commands.push(
-          "0.49 0.18 0.07 rg",
-          `BT /F1 16 Tf 80 ${pageHeight - 120} Td (` + escapePdfText(t("result.noItem")) + ") Tj ET"
-        );
-      }
+      const writeObject = (id: number, content: string) => {
+      offsets[id] = length;
+      pushText(`${id} 0 obj\n${content}\nendobj\n`);
+    };
 
-      const pageAnnotationIds: number[] = [];
-
-      chunk.forEach((item, itemIndex) => {
-        const yTop = yStart - itemIndex * rowHeight;
-        const details = [`${t("column.level")} ${item.level}`, tCategory(item.category, language)];
-
-        if (displayOptions.showRarity) {
-          details.push(tRarity(item.rarity, language));
-        }
-
-        if (displayOptions.showAmount) {
-          details.push(`${item.valueAmount} ${tCurrency(item.valueCurrency, language)}`);
-        }
-
-        const nameColor = displayOptions.showRarity ? hexToPdfRgb(getRarityColor(item.rarity)) : "0.15 0.11 0.06";
-
-        commands.push(
-          `${nameColor} rg`,
-          `BT /F1 15 Tf ${margin} ${yTop} Td (${escapePdfText(item.name)}) Tj ET`,
-          "0.24 0.16 0.09 rg",
-          `BT /F1 11 Tf ${margin} ${yTop - 16} Td (${escapePdfText(details.join(" • "))}) Tj ET`
-        );
-
-        if (displayOptions.showLink && item.url) {
-          const estimatedNameWidth = Math.min(420, Math.max(80, item.name.length * 7.2));
-          const annotObjectId = addObject(
-            `<< /Type /Annot /Subtype /Link /Rect [${margin} ${yTop - 2} ${margin + estimatedNameWidth} ${yTop + 16}] /Border [0 0 0] /A << /S /URI /URI (${escapePdfText(item.url)}) >> >>`
-          );
-          pageAnnotationIds.push(annotObjectId);
-        }
-      });
-
-      const contentStream = commands.join("\n");
-      const contentObjectId = addObject(
-        `<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream`
-      );
-
-      const annotsPart =
-        pageAnnotationIds.length > 0
-          ? `/Annots [${pageAnnotationIds.map((id) => `${id} 0 R`).join(" ")}]`
-          : "";
-
-      const pageObjectId = addObject(
-        `<< /Type /Page /Parent {{PAGES_ID}} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontObjectId} 0 R >> >> /Contents ${contentObjectId} 0 R ${annotsPart} >>`
-      );
-
-      pageObjectIds.push(pageObjectId);
-    });
-
-    const pagesObjectId = addObject(
-      `<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageObjectIds.length} >>`
+    writeObject(1, "<< /Type /Catalog /Pages 2 0 R >>");
+    writeObject(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+    writeObject(
+      3,
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /Im0 ${imageObjectId} 0 R >> >> /Contents 4 0 R ${annotsPart} >>`
     );
-    const catalogObjectId = addObject(`<< /Type /Catalog /Pages ${pagesObjectId} 0 R >>`);
+    const contentStream = `q\n${pageWidth} 0 0 ${pageHeight} 0 0 cm\n/Im0 Do\nQ\n`;
+    offsets[4] = length;
+    pushText(`4 0 obj\n<< /Length ${contentStream.length} >>\nstream\n${contentStream}endstream\nendobj\n`);
 
-    const normalizedObjects = objects.map((object) =>
-      object.replace(/\{\{PAGES_ID\}\}/g, String(pagesObjectId))
+    offsets[imageObjectId] = length;
+    pushText(
+      `${imageObjectId} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.length} >>\nstream\n`
     );
+    pushBytes(imageBytes);
+    pushText("\nendstream\nendobj\n");
 
-    let pdf = "%PDF-1.4\n";
-    const offsets: number[] = [0];
-    normalizedObjects.forEach((object, index) => {
-      offsets.push(pdf.length);
-      pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+    links.forEach((link, index) => {
+      const id = firstAnnotId + index;
+      const x1 = link.x;
+      const y1 = pageHeight - (link.y + link.height);
+      const x2 = link.x + link.width;
+      const y2 = pageHeight - link.y;
+      writeObject(
+        id,
+        `<< /Type /Annot /Subtype /Link /Rect [${x1} ${y1} ${x2} ${y2}] /Border [0 0 0] /A << /S /URI /URI (${escapePdfValue(link.url)}) >> >>`
+      );
     });
 
-    const xrefOffset = pdf.length;
-    pdf += `xref\n0 ${normalizedObjects.length + 1}\n`;
-    pdf += "0000000000 65535 f \n";
-    offsets.slice(1).forEach((offset) => {
-      pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
-    });
-    pdf += `trailer\n<< /Size ${normalizedObjects.length + 1} /Root ${catalogObjectId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+    const xrefOffset = length;
+    pushText(`xref\n0 ${totalObjects + 1}\n`);
+    pushText("0000000000 65535 f \n");
+    for (let id = 1; id <= totalObjects; id += 1) {
+      pushText(`${String(offsets[id] ?? 0).padStart(10, "0")} 00000 n \n`);
+    }
+    pushText(`trailer\n<< /Size ${totalObjects + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
 
-    return new Blob([pdf], { type: "application/pdf" });
+    return new Blob(chunks as BlobPart[], { type: "application/pdf" });
   }
 
   function executePdfDownload() {
@@ -410,8 +373,9 @@ export default function ResultDialog({
     }
 
     try {
+      const { canvas, links } = renderExportCanvas(result, exportOptions);
       const filename = buildExportFilename("pdf");
-      const pdfBlob = buildPdfBlob(result, exportOptions);
+      const pdfBlob = buildPdfFromCanvas(canvas, links);
       downloadBlob(pdfBlob, filename);
       onShowAlert(t("result.downloadPdfOk"));
     } catch (error) {
