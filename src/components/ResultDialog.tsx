@@ -108,7 +108,7 @@ export default function ResultDialog({
 }: ResultDialogProps) {
   const { t, language } = useI18n();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [pendingExportAction, setPendingExportAction] = useState<"copy" | "image" | null>(null);
+  const [pendingExportAction, setPendingExportAction] = useState<"copy" | "image" | "pdf" | null>(null);
   const [exportOptions, setExportOptions] = useState<ExportDisplayOptions>({
     showRarity: true,
     showAmount: true,
@@ -120,7 +120,7 @@ export default function ResultDialog({
     return formatResultText(result, t, language, exportOptions);
   }, [result, t, language, exportOptions]);
 
-  function openExportOptions(action: "copy" | "image") {
+  function openExportOptions(action: "copy" | "image" | "pdf") {
     setPendingExportAction(action);
   }
 
@@ -188,10 +188,6 @@ export default function ResultDialog({
       context.textAlign = "center";
       context.fillText(t("gain.discovered"), width / 2, 92);
 
-      context.font = "italic 28px Georgia, serif";
-      context.fillStyle = "#5f4225";
-      context.fillText(t("result.title.gm"), width / 2, 132);
-
       context.textAlign = "left";
 
       if (result.items.length === 0) {
@@ -210,7 +206,7 @@ export default function ResultDialog({
           context.stroke();
 
           context.font = "700 34px Georgia, serif";
-          context.fillStyle = getRarityColor(item.rarity);
+          context.fillStyle = exportOptions.showRarity ? getRarityColor(item.rarity) : "#3e2a16";
           context.fillText(item.name, 80, cardY + 35);
 
           context.font = "500 23px Georgia, serif";
@@ -275,42 +271,96 @@ export default function ResultDialog({
       .replace(/\)/g, "\\)");
   }
 
-  function buildPdfBlob(text: string): Blob {
-    const lines = text.split("\n");
-    const linesPerPage = 42;
-    const pageChunks: string[][] = [];
+  function buildPdfBlob(data: RollResult, displayOptions: ExportDisplayOptions): Blob {
+    const pageWidth = 595;
+    const pageHeight = 842;
+    const margin = 48;
+    const rowHeight = displayOptions.showLink ? 58 : 42;
+    const rowsPerPage = 11;
+    const chunks: typeof data.items[] = [];
 
-    for (let index = 0; index < lines.length; index += linesPerPage) {
-      pageChunks.push(lines.slice(index, index + linesPerPage));
+    for (let index = 0; index < data.items.length; index += rowsPerPage) {
+      chunks.push(data.items.slice(index, index + rowsPerPage));
+    }
+
+    if (chunks.length === 0) {
+      chunks.push([]);
     }
 
     const objects: string[] = [];
-
     const addObject = (content: string): number => {
       objects.push(content);
       return objects.length;
     };
 
     const fontObjectId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
-
     const pageObjectIds: number[] = [];
 
-    pageChunks.forEach((chunk) => {
-      const body = [
-        "BT",
-        "/F1 11 Tf",
-        "48 792 Td",
-        "14 TL",
-        ...chunk.map((line) => `(${escapePdfText(line || " ")}) Tj T*`),
-        "ET",
-      ].join("\n");
+    chunks.forEach((chunk) => {
+      const commands: string[] = [
+        "0.96 0.91 0.80 rg",
+        "0 0 595 842 re f",
+        "0.44 0.31 0.18 RG",
+        "6 w",
+        "18 18 559 806 re S",
+        "0.24 0.16 0.09 rg",
+        "BT /F1 28 Tf 200 790 Td (" + escapePdfText(t("gain.discovered")) + ") Tj ET",
+      ];
 
+      if (chunk.length === 0) {
+        commands.push(
+          "0.49 0.18 0.07 rg",
+          "BT /F1 16 Tf 80 740 Td (" + escapePdfText(t("result.noItem")) + ") Tj ET"
+        );
+      }
+
+      const pageAnnotationIds: number[] = [];
+
+      chunk.forEach((item, itemIndex) => {
+        const yTop = 730 - itemIndex * rowHeight;
+        const details = [`${t("column.level")} ${item.level}`, tCategory(item.category, language)];
+
+        if (displayOptions.showRarity) {
+          details.push(tRarity(item.rarity, language));
+        }
+
+        if (displayOptions.showAmount) {
+          details.push(`${item.valueAmount} ${tCurrency(item.valueCurrency, language)}`);
+        }
+
+        commands.push(
+          "0.15 0.11 0.06 rg",
+          `BT /F1 15 Tf ${margin} ${yTop} Td (${escapePdfText(item.name)}) Tj ET`,
+          "0.24 0.16 0.09 rg",
+          `BT /F1 11 Tf ${margin} ${yTop - 16} Td (${escapePdfText(details.join(" • "))}) Tj ET`
+        );
+
+        if (displayOptions.showLink && item.url) {
+          const estimatedNameWidth = Math.min(420, Math.max(80, item.name.length * 7.2));
+          const annotObjectId = addObject(
+            `<< /Type /Annot /Subtype /Link /Rect [${margin} ${yTop - 2} ${margin + estimatedNameWidth} ${yTop + 16}] /Border [0 0 0] /A << /S /URI /URI (${escapePdfText(item.url)}) >> >>`
+          );
+          pageAnnotationIds.push(annotObjectId);
+
+          commands.push(
+            "0.21 0.37 0.60 rg",
+            `BT /F1 10 Tf ${margin} ${yTop - 30} Td (${escapePdfText(item.url)}) Tj ET`
+          );
+        }
+      });
+
+      const contentStream = commands.join("\n");
       const contentObjectId = addObject(
-        `<< /Length ${body.length} >>\nstream\n${body}\nendstream`
+        `<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream`
       );
 
+      const annotsPart =
+        pageAnnotationIds.length > 0
+          ? `/Annots [${pageAnnotationIds.map((id) => `${id} 0 R`).join(" ")}]`
+          : "";
+
       const pageObjectId = addObject(
-        `<< /Type /Page /Parent {{PAGES_ID}} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontObjectId} 0 R >> >> /Contents ${contentObjectId} 0 R >>`
+        `<< /Type /Page /Parent {{PAGES_ID}} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontObjectId} 0 R >> >> /Contents ${contentObjectId} 0 R ${annotsPart} >>`
       );
 
       pageObjectIds.push(pageObjectId);
@@ -319,7 +369,6 @@ export default function ResultDialog({
     const pagesObjectId = addObject(
       `<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageObjectIds.length} >>`
     );
-
     const catalogObjectId = addObject(`<< /Type /Catalog /Pages ${pagesObjectId} 0 R >>`);
 
     const normalizedObjects = objects.map((object) =>
@@ -328,33 +377,30 @@ export default function ResultDialog({
 
     let pdf = "%PDF-1.4\n";
     const offsets: number[] = [0];
-
     normalizedObjects.forEach((object, index) => {
       offsets.push(pdf.length);
       pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
     });
 
     const xrefOffset = pdf.length;
-
     pdf += `xref\n0 ${normalizedObjects.length + 1}\n`;
     pdf += "0000000000 65535 f \n";
     offsets.slice(1).forEach((offset) => {
       pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
     });
-
     pdf += `trailer\n<< /Size ${normalizedObjects.length + 1} /Root ${catalogObjectId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
 
     return new Blob([pdf], { type: "application/pdf" });
   }
 
-  function handleDownloadPdf() {
-    if (!result || !textToCopy) {
+  function executePdfDownload() {
+    if (!result) {
       return;
     }
 
     try {
       const filename = buildExportFilename("pdf");
-      const pdfBlob = buildPdfBlob(textToCopy);
+      const pdfBlob = buildPdfBlob(result, exportOptions);
       downloadBlob(pdfBlob, filename);
       onShowAlert(t("result.downloadPdfOk"));
     } catch (error) {
@@ -372,6 +418,10 @@ export default function ResultDialog({
       await executeImageDownload();
     }
 
+    if (pendingExportAction === "pdf") {
+      executePdfDownload();
+    }
+    
     closeExportOptions();
   }
 
@@ -535,7 +585,7 @@ export default function ResultDialog({
           <button onClick={() => openExportOptions("image")} style={buttons.secondary}>
           {t("result.downloadImage")}
           </button>
-          <button onClick={handleDownloadPdf} style={buttons.secondary}>
+          <button onClick={() => openExportOptions("pdf")} style={buttons.secondary}>
           {t("result.downloadPdf")}
           </button>
           <button onClick={onClose} style={buttons.secondary}>
