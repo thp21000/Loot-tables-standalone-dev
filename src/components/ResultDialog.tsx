@@ -247,7 +247,7 @@ export default function ResultDialog({
         height - 32
       );
 
-      cconst filename = buildExportFilename("png");
+      const filename = buildExportFilename("png");
 
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((nextBlob) => {
