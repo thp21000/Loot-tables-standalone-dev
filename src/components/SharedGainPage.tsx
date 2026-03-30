@@ -69,6 +69,7 @@ export default function SharedGainPage() {
   const showRarity = params.get("showRarity") !== "0";
   const showAmount = params.get("showAmount") !== "0";
   const showLink = params.get("showLink") === "1";
+  const shouldAutoFullscreen = params.get("autofs") === "1";
   const [playerRole, setPlayerRole] = useState<OwlbearPlayerRole>("UNKNOWN");
   const [roomState, setRoomState] = useState<OwlbearRoomState>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -130,6 +131,34 @@ export default function SharedGainPage() {
 
     init();
 
+    let attempts = 0;
+    const maxAttempts = 8;
+    const autoFullscreenInterval: number | undefined = shouldAutoFullscreen
+      ? window.setInterval(() => {
+          attempts += 1;
+
+          if (document.fullscreenElement) {
+            window.clearInterval(autoFullscreenInterval);
+            return;
+          }
+
+          requestPresentationFullscreen();
+
+          if (attempts >= maxAttempts) {
+            window.clearInterval(autoFullscreenInterval);
+          }
+        }, 500)
+      : undefined;
+
+    const onFocusTryFullscreen = () => {
+      if (!shouldAutoFullscreen || document.fullscreenElement) {
+        return;
+      }
+      requestPresentationFullscreen();
+    };
+
+    window.addEventListener("focus", onFocusTryFullscreen);
+
     return () => {
       isMounted = false;
 
@@ -146,8 +175,13 @@ export default function SharedGainPage() {
       if (unsubscribe) {
         unsubscribe();
       }
+
+      if (autoFullscreenInterval !== undefined) {
+        window.clearInterval(autoFullscreenInterval);
+      }
+      window.removeEventListener("focus", onFocusTryFullscreen);
     };
-  }, []);
+  }, [shouldAutoFullscreen]);
 
   const summary = roomState.lastValidatedRoll ?? null;
 

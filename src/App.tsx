@@ -541,7 +541,7 @@ export default function App() {
   function handleOpenPresentationView(displayOptions: { showRarity: boolean; showAmount: boolean; showLink: boolean }) {
     void (async () => {
       const presentationUrl = `${window.location.origin}${window.location.pathname}?view=gain-modal`;
-      const urlWithOptions = `${presentationUrl}&showRarity=${displayOptions.showRarity ? "1" : "0"}&showAmount=${displayOptions.showAmount ? "1" : "0"}&showLink=${displayOptions.showLink ? "1" : "0"}`;
+      const urlWithOptions = `${presentationUrl}&showRarity=${displayOptions.showRarity ? "1" : "0"}&showAmount=${displayOptions.showAmount ? "1" : "0"}&showLink=${displayOptions.showLink ? "1" : "0"}&autofs=1`;
 
       type ScreenLike = {
         left?: number;
@@ -642,6 +642,7 @@ export default function App() {
       presentationWindow.addEventListener("load", requestPresentationFullscreen, {
         once: true,
       });
+      requestPresentationFullscreen();
       setTimeout(requestPresentationFullscreen, 900);
     })();
   }
