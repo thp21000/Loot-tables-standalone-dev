@@ -73,6 +73,12 @@ export default function SharedGainPage() {
   const [roomState, setRoomState] = useState<OwlbearRoomState>({});
   const [isLoading, setIsLoading] = useState(true);
 
+  function requestPresentationFullscreen() {
+    void document.documentElement.requestFullscreen?.().catch(() => {
+      // ignore if fullscreen request is blocked
+    });
+  }
+
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
     let isMounted = true;
@@ -123,9 +129,6 @@ export default function SharedGainPage() {
     }
 
     init();
-    void document.documentElement.requestFullscreen?.().catch(() => {
-      // ignore if fullscreen request is blocked
-    });
 
     return () => {
       isMounted = false;
@@ -151,8 +154,8 @@ export default function SharedGainPage() {
   return (
     <div
       style={{
-        height: "100vh",
-        overflow: "hidden",
+        minHeight: "100vh",
+        overflowY: "auto",
         padding: "16px",
         background: colors.pageBg,
         color: colors.text,
@@ -161,18 +164,23 @@ export default function SharedGainPage() {
     >
       <div
         style={{
-          maxWidth: "760px",
-          height: "100%",
+          maxWidth: "860px",
           margin: "0 auto",
           border: `1px solid ${colors.border}`,
           borderRadius: radius.lg,
           background: colors.cardBg,
           padding: "18px",
           boxSizing: "border-box",
-          display: "flex",
-          flexDirection: "column",
+          display: "grid",
+          gap: "12px",
         }}
       >
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button type="button" onClick={requestPresentationFullscreen} style={buttons.secondary}>
+            {t("gain.fullscreen")}
+          </button>
+        </div>
+
         <h1 style={{ ...typography.pageTitle, marginBottom: "16px" }}>
           {summary ? getRoleTitle(playerRole, t) : t("gain.title")}
         </h1>
@@ -213,9 +221,7 @@ export default function SharedGainPage() {
                 style={{
                   display: "grid",
                   gap: "10px",
-                  flex: "1 1 auto",
-                  overflow: "hidden",
-                  justifyItems: "flex-start",
+                  overflow: "visible",
                 }}
               >
                 {summary.items.map((item, index) => (
@@ -226,8 +232,6 @@ export default function SharedGainPage() {
                       borderRadius: radius.md,
                       padding: "12px",
                       background: colors.cardBgAlt,
-                      width: "fit-content",
-                      maxWidth: "100%",
                     }}
                   >
                     <div

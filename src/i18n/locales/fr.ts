@@ -202,6 +202,7 @@ const fr = {
     "gain.loading": "Chargement du butin…",
     "gain.empty": "Aucun gain validé à afficher.",
     "gain.noItem": "Aucun objet trouvé.",
+    "gain.fullscreen": "Plein écran",
     "news.title": "News & mises à jour",
     "news.intro": "Résumé des dernières évolutions de l’application :",
     "news.item.1": "Support multi-systèmes PF2E / DND5E avec stockage séparé.",

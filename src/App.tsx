@@ -607,6 +607,7 @@ export default function App() {
         "menubar=no",
         "location=no",
         "status=no",
+        "fullscreen=yes",
         "resizable=yes",
         "scrollbars=yes",
         `left=${left}`,

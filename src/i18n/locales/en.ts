@@ -202,6 +202,7 @@ const en = {
     "gain.loading": "Loading loot…",
     "gain.empty": "No validated loot to display.",
     "gain.noItem": "No item found.",
+    "gain.fullscreen": "Fullscreen",
     "news.title": "News & updates",
     "news.intro": "Summary of the latest application changes:",
     "news.item.1": "PF2E / DND5E multi-system support with separated storage.",
