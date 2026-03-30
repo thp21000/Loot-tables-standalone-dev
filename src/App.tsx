@@ -539,8 +539,109 @@ export default function App() {
   }
 
   function handleOpenPresentationView() {
-    const presentationUrl = `${window.location.origin}${window.location.pathname}?view=gain-modal`;
-    window.open(presentationUrl, "_blank", "noopener,noreferrer");
+    void (async () => {
+      const presentationUrl = `${window.location.origin}${window.location.pathname}?view=gain-modal`;
+
+      type ScreenLike = {
+        left?: number;
+        top?: number;
+        width?: number;
+        height?: number;
+        availLeft?: number;
+        availTop?: number;
+        availWidth?: number;
+        availHeight?: number;
+        isPrimary?: boolean;
+        label?: string;
+      };
+
+      let targetScreen: ScreenLike = window.screen;
+      const windowWithDetails = window as Window & {
+        getScreenDetails?: () => Promise<{ screens: ScreenLike[] }>;
+      };
+
+      if (typeof windowWithDetails.getScreenDetails === "function") {
+        try {
+          const details = await windowWithDetails.getScreenDetails();
+          const screens = details.screens ?? [];
+
+          if (screens.length > 1) {
+            const choices = screens
+              .map((screen, index) => {
+                const label = screen.label?.trim() ? screen.label : `${t("app.presentation.screen")} ${index + 1}`;
+                const marker = screen.isPrimary ? ` (${t("app.presentation.primary")})` : "";
+                return `${index + 1} - ${label}${marker}`;
+              })
+              .join("\n");
+
+            const selected = window.prompt(`${t("app.presentation.chooseScreen")}\n\n${choices}`, "1");
+
+            if (selected === null) {
+              return;
+            }
+
+            const selectedIndex = Number.parseInt(selected, 10) - 1;
+            if (Number.isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= screens.length) {
+              setAlertMessage(t("app.presentation.invalidChoice"));
+              return;
+            }
+
+            targetScreen = screens[selectedIndex];
+          } else if (screens.length === 1) {
+            [targetScreen] = screens;
+          }
+        } catch {
+          // permission denied or not supported by browser policy
+        }
+      }
+
+      const left = Math.round(targetScreen.availLeft ?? targetScreen.left ?? 0);
+      const top = Math.round(targetScreen.availTop ?? targetScreen.top ?? 0);
+      const width = Math.round(targetScreen.availWidth ?? targetScreen.width ?? window.innerWidth);
+      const height = Math.round(targetScreen.availHeight ?? targetScreen.height ?? window.innerHeight);
+
+      const popupFeatures = [
+        "popup=yes",
+        "toolbar=no",
+        "menubar=no",
+        "location=no",
+        "status=no",
+        "resizable=yes",
+        "scrollbars=yes",
+        `left=${left}`,
+        `top=${top}`,
+        `width=${width}`,
+        `height=${height}`,
+      ].join(",");
+
+      const presentationWindow = window.open(
+        presentationUrl,
+        "loot-tables-presentation",
+        popupFeatures
+      );
+
+      if (!presentationWindow) {
+        setAlertMessage(t("app.presentation.popupBlocked"));
+        return;
+      }
+
+      presentationWindow.focus();
+      presentationWindow.moveTo(left, top);
+      presentationWindow.resizeTo(width, height);
+
+      const requestPresentationFullscreen = () => {
+        void presentationWindow.document.documentElement
+          .requestFullscreen?.()
+          .catch(() => {
+            // ignore if fullscreen is blocked by browser policy
+          });
+      };
+
+      presentationWindow.addEventListener("load", requestPresentationFullscreen, {
+        once: true,
+      });
+      setTimeout(requestPresentationFullscreen, 900);
+    })();
   }
 
   function handleCloseResultDialog() {
