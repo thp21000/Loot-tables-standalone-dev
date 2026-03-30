@@ -36,11 +36,13 @@ function getRoleTitle(
 function ItemName({
   name,
   url,
+  showLink,
 }: {
   name: string;
   url: string;
+  showLink: boolean;
 }) {
-  if (!url.trim()) {
+  if (!showLink || !url.trim()) {
     return <div style={{ fontWeight: 700, fontSize: "1.06rem" }}>{name}</div>;
   }
 
@@ -63,6 +65,10 @@ function ItemName({
 
 export default function SharedGainPage() {
   const { t, language } = useI18n();
+  const params = new URLSearchParams(window.location.search);
+  const showRarity = params.get("showRarity") !== "0";
+  const showAmount = params.get("showAmount") !== "0";
+  const showLink = params.get("showLink") === "1";
   const [playerRole, setPlayerRole] = useState<OwlbearPlayerRole>("UNKNOWN");
   const [roomState, setRoomState] = useState<OwlbearRoomState>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -117,6 +123,9 @@ export default function SharedGainPage() {
     }
 
     init();
+    void document.documentElement.requestFullscreen?.().catch(() => {
+      // ignore if fullscreen request is blocked
+    });
 
     return () => {
       isMounted = false;
@@ -206,6 +215,7 @@ export default function SharedGainPage() {
                   gap: "10px",
                   flex: "1 1 auto",
                   overflow: "hidden",
+                  justifyItems: "flex-start",
                 }}
               >
                 {summary.items.map((item, index) => (
@@ -216,6 +226,8 @@ export default function SharedGainPage() {
                       borderRadius: radius.md,
                       padding: "12px",
                       background: colors.cardBgAlt,
+                      width: "fit-content",
+                      maxWidth: "100%",
                     }}
                   >
                     <div
@@ -228,9 +240,9 @@ export default function SharedGainPage() {
                         alignItems: "center",
                       }}
                     >
-                      <ItemName name={item.name} url={item.url} />
+                      <ItemName name={item.name} url={item.url} showLink={showLink} />
 
-                      {playerRole === "GM" ? (
+                      {showAmount && playerRole === "GM" ? (
                         <div style={{ color: colors.textMuted }}>
                           {item.valueAmount} {tCurrency(item.valueCurrency, language)}
                         </div>
@@ -250,14 +262,16 @@ export default function SharedGainPage() {
                         {t("column.level")} {item.level}
                       </span>
                       <span>{tCategory(item.category, language)}</span>
-                      <span
-                        style={{
-                          color: getRarityColor(item.rarity),
-                          fontWeight: 700,
-                        }}
-                      >
-                        {tRarity(item.rarity, language)}
-                      </span>
+                      {showRarity ? (
+                        <span
+                          style={{
+                            color: getRarityColor(item.rarity),
+                            fontWeight: 700,
+                          }}
+                        >
+                          {tRarity(item.rarity, language)}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 ))}

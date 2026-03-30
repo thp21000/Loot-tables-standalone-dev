@@ -538,9 +538,10 @@ export default function App() {
     setAlertMessage(t("app.rollShared"));
   }
 
-  function handleOpenPresentationView() {
+  function handleOpenPresentationView(displayOptions: { showRarity: boolean; showAmount: boolean; showLink: boolean }) {
     void (async () => {
       const presentationUrl = `${window.location.origin}${window.location.pathname}?view=gain-modal`;
+      const urlWithOptions = `${presentationUrl}&showRarity=${displayOptions.showRarity ? "1" : "0"}&showAmount=${displayOptions.showAmount ? "1" : "0"}&showLink=${displayOptions.showLink ? "1" : "0"}`;
 
       type ScreenLike = {
         left?: number;
@@ -615,7 +616,7 @@ export default function App() {
       ].join(",");
 
       const presentationWindow = window.open(
-        presentationUrl,
+        urlWithOptions,
         "loot-tables-presentation",
         popupFeatures
       );

@@ -12,7 +12,7 @@ type ResultDialogProps = {
   onClose: () => void;
   onReroll: () => void;
   onValidate: () => void;
-  onOpenPresentation: () => void;
+  onOpenPresentation: (options: ExportDisplayOptions) => void;
   onShowAlert: (message: string) => void;
   playerRole: OwlbearPlayerRole;
 };
@@ -109,7 +109,7 @@ export default function ResultDialog({
 }: ResultDialogProps) {
   const { t, language } = useI18n();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [pendingExportAction, setPendingExportAction] = useState<"copy" | "image" | "pdf" | null>(null);
+  const [pendingExportAction, setPendingExportAction] = useState<"copy" | "image" | "pdf" | "presentation" | null>(null);
   const [exportOptions, setExportOptions] = useState<ExportDisplayOptions>({
     showRarity: true,
     showAmount: true,
@@ -121,7 +121,7 @@ export default function ResultDialog({
     return formatResultText(result, t, language, exportOptions);
   }, [result, t, language, exportOptions]);
 
-  function openExportOptions(action: "copy" | "image" | "pdf") {
+  function openExportOptions(action: "copy" | "image" | "pdf" | "presentation") {
     setPendingExportAction(action);
   }
 
@@ -393,6 +393,10 @@ export default function ResultDialog({
       executePdfDownload();
     }
 
+    if (pendingExportAction === "presentation") {
+      onOpenPresentation(exportOptions);
+    }
+
     closeExportOptions();
   }
 
@@ -541,11 +545,11 @@ export default function ResultDialog({
         >
           {playerRole === "GM" ? (
             <>
-              <button onClick={onOpenPresentation} style={buttons.secondary}>
-              {t("result.openPresentation")}
-              </button>
               <button onClick={onReroll} style={buttons.secondary}>
               {t("result.reroll")}
+              </button>
+              <button onClick={() => openExportOptions("presentation")} style={buttons.secondary}>
+              {t("result.openPresentation")}
               </button>
             </>
           ) : null}
