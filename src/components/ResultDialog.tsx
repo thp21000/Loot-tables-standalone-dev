@@ -103,7 +103,6 @@ export default function ResultDialog({
   history,
   onClose,
   onReroll,
-  onValidate,
   onOpenPresentation,
   onShowAlert,
   playerRole,
