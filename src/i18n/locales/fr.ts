@@ -166,6 +166,7 @@ const fr = {
     "result.copyOk": "Résultat copié dans le presse-papiers.",
     "result.copyError": "Impossible de copier le résultat.",
     "result.validate": "Valider le tirage",
+    "result.openPresentation": "Mode présentation",
     "result.reroll": "Relancer",
     "result.copy": "Copier les résultats",
     "result.downloadImage": "Télécharger image",

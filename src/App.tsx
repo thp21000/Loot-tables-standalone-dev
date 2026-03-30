@@ -538,6 +538,11 @@ export default function App() {
     setAlertMessage(t("app.rollShared"));
   }
 
+  function handleOpenPresentationView() {
+    const presentationUrl = `${window.location.origin}${window.location.pathname}?view=gain-modal`;
+    window.open(presentationUrl, "_blank", "noopener,noreferrer");
+  }
+
   function handleCloseResultDialog() {
     setRollResult(null);
   }
@@ -1230,6 +1235,7 @@ export default function App() {
         onClose={handleCloseResultDialog}
         onReroll={handleReroll}
         onValidate={handleValidateRoll}
+        onOpenPresentation={handleOpenPresentationView}
         onShowAlert={(message) => setAlertMessage(message)}
         playerRole={playerRole}
       />

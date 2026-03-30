@@ -12,6 +12,7 @@ type ResultDialogProps = {
   onClose: () => void;
   onReroll: () => void;
   onValidate: () => void;
+  onOpenPresentation: () => void;
   onShowAlert: (message: string) => void;
   playerRole: OwlbearPlayerRole;
 };
@@ -103,6 +104,7 @@ export default function ResultDialog({
   onClose,
   onReroll,
   onValidate,
+  onOpenPresentation,
   onShowAlert,
   playerRole,
 }: ResultDialogProps) {
@@ -540,8 +542,8 @@ export default function ResultDialog({
         >
           {playerRole === "GM" ? (
             <>
-              <button onClick={onValidate} style={buttons.primary}>
-              {t("result.validate")}
+              <button onClick={onOpenPresentation} style={buttons.secondary}>
+              {t("result.openPresentation")}
               </button>
               <button onClick={onReroll} style={buttons.secondary}>
               {t("result.reroll")}

@@ -166,6 +166,7 @@ const en = {
     "result.copyOk": "Result copied to clipboard.",
     "result.copyError": "Unable to copy result.",
     "result.validate": "Validate roll",
+    "result.openPresentation": "Presentation mode",
     "result.reroll": "Reroll",
     "result.copy": "Copy results",
     "result.downloadImage": "Download image",
